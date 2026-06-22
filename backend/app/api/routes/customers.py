@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_db
 from app.schemas.customer import CustomerCreate, CustomerResponse
 from app.services import customer_service
-from app.services.customer_service import CustomerNotFoundError
+from app.services.customer_service import CustomerNotFoundError, CustomerHasOrdersError
 
 router = APIRouter(prefix="/customers", tags=["customers"])
 
@@ -81,3 +81,5 @@ def delete_customer(
         customer_service.delete_customer(db, customer_id)
     except CustomerNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    except CustomerHasOrdersError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))

@@ -27,6 +27,14 @@ class CustomerNotFoundError(Exception):
         super().__init__(f"Customer with id={customer_id} not found.")
 
 
+class CustomerHasOrdersError(Exception):
+    """Raised when trying to delete a customer who has orders."""
+
+    def __init__(self, customer_id: int) -> None:
+        self.customer_id = customer_id
+        super().__init__(f"Customer with id={customer_id} has existing orders and cannot be deleted.")
+
+
 # ---------------------------------------------------------------------------
 # Read operations
 # ---------------------------------------------------------------------------
@@ -72,7 +80,10 @@ def delete_customer(db: Session, customer_id: int) -> None:
     Delete a customer by id.
 
     Raises ``CustomerNotFoundError`` if the customer does not exist.
+    Raises ``CustomerHasOrdersError`` if the customer has existing orders.
     """
     customer = get_customer(db, customer_id)
+    if customer.orders:
+        raise CustomerHasOrdersError(customer_id)
     db.delete(customer)
     db.commit()

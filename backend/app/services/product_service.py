@@ -27,6 +27,14 @@ class ProductNotFoundError(Exception):
         super().__init__(f"Product with id={product_id} not found.")
 
 
+class ProductHasOrdersError(Exception):
+    """Raised when trying to delete a product that has been ordered."""
+
+    def __init__(self, product_id: int) -> None:
+        self.product_id = product_id
+        super().__init__(f"Product with id={product_id} has existing order items and cannot be deleted.")
+
+
 # ---------------------------------------------------------------------------
 # Read operations
 # ---------------------------------------------------------------------------
@@ -86,7 +94,10 @@ def delete_product(db: Session, product_id: int) -> None:
     Delete a product by id.
 
     Raises ``ProductNotFoundError`` if the product does not exist.
+    Raises ``ProductHasOrdersError`` if the product has existing order items.
     """
     product = get_product(db, product_id)
+    if product.order_items:
+        raise ProductHasOrdersError(product_id)
     db.delete(product)
     db.commit()
