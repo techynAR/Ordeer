@@ -38,6 +38,22 @@ def get_dashboard_stats(db: Session) -> DashboardStats:
         .all()
     )
 
+    recent_customers = (
+        db.execute(select(Customer).order_by(Customer.created_at.desc()).limit(5))
+        .scalars()
+        .all()
+    )
+
+    recent_orders_query = (
+        db.execute(
+            select(Order, Customer.full_name.label("customer_name"))
+            .join(Customer, Order.customer_id == Customer.id)
+            .order_by(Order.created_at.desc())
+            .limit(5)
+        )
+        .all()
+    )
+
     return DashboardStats(
         total_products=total_products,
         total_customers=total_customers,
@@ -52,5 +68,23 @@ def get_dashboard_stats(db: Session) -> DashboardStats:
                 stock_quantity=p.stock_quantity,
             )
             for p in low_stock_products
+        ],
+        recent_orders=[
+            {
+                "id": o.Order.id,
+                "customer_name": o.customer_name,
+                "total_amount": o.Order.total_amount,
+                "created_at": o.Order.created_at,
+            }
+            for o in recent_orders_query
+        ],
+        recent_customers=[
+            {
+                "id": c.id,
+                "full_name": c.full_name,
+                "email": c.email,
+                "created_at": c.created_at,
+            }
+            for c in recent_customers
         ],
     )

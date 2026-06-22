@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
-from app.schemas.customer import CustomerCreate, CustomerResponse
+from app.schemas.customer import CustomerCreate, CustomerResponse, CustomerDetailResponse
 from app.services import customer_service
 from app.services.customer_service import CustomerNotFoundError, CustomerHasOrdersError
 
@@ -52,13 +52,13 @@ def list_customers(
 # ---------------------------------------------------------------------------
 @router.get(
     "/{customer_id}",
-    response_model=CustomerResponse,
+    response_model=CustomerDetailResponse,
     summary="Get a customer by id",
 )
 def get_customer(
     customer_id: int,
     db: Session = Depends(get_db),
-) -> CustomerResponse:
+) -> CustomerDetailResponse:
     try:
         return customer_service.get_customer(db, customer_id)
     except CustomerNotFoundError as exc:

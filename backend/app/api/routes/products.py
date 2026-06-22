@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
-from app.schemas.product import ProductCreate, ProductResponse, ProductUpdate
+from app.schemas.product import ProductCreate, ProductResponse, ProductUpdate, ProductDetailResponse
 from app.services import product_service
 from app.services.product_service import ProductNotFoundError, ProductHasOrdersError
 
@@ -52,13 +52,13 @@ def list_products(
 # ---------------------------------------------------------------------------
 @router.get(
     "/{product_id}",
-    response_model=ProductResponse,
+    response_model=ProductDetailResponse,
     summary="Get a product by id",
 )
 def get_product(
     product_id: int,
     db: Session = Depends(get_db),
-) -> ProductResponse:
+) -> ProductDetailResponse:
     try:
         return product_service.get_product(db, product_id)
     except ProductNotFoundError as exc:

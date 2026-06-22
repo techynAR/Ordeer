@@ -28,3 +28,17 @@ class ProductResponse(BaseModel):
     stock_quantity: int
     created_at: datetime
     updated_at: datetime
+
+
+class ProductOrderItemDetail(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    order_id: int
+    quantity: int
+    unit_price: Decimal
+    subtotal: Decimal
+
+
+class ProductDetailResponse(ProductResponse):
+    order_items: list[ProductOrderItemDetail] = []

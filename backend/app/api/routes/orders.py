@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
-from app.schemas.order import OrderCreate, OrderResponse
+from app.schemas.order import OrderCreate, OrderResponse, OrderDetailResponse
 from app.services import order_service
 from app.services.order_service import (
     CustomerNotFoundError,
@@ -66,13 +66,13 @@ def list_orders(
 # ---------------------------------------------------------------------------
 @router.get(
     "/{order_id}",
-    response_model=OrderResponse,
+    response_model=OrderDetailResponse,
     summary="Get an order by id",
 )
 def get_order(
     order_id: int,
     db: Session = Depends(get_db),
-) -> OrderResponse:
+) -> OrderDetailResponse:
     try:
         return order_service.get_order(db, order_id)
     except ValueError as exc:
