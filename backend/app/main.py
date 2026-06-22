@@ -16,6 +16,7 @@ from typing import AsyncGenerator
 from fastapi import FastAPI
 
 from app.api.routes.customers import router as customers_router
+from app.api.routes.dashboard import router as dashboard_router
 from app.api.routes.orders import router as orders_router
 from app.api.routes.products import router as products_router
 from app.db.init_db import create_tables
@@ -45,6 +46,7 @@ app = FastAPI(
 # ---------------------------------------------------------------------------
 # Routers
 # ---------------------------------------------------------------------------
+app.include_router(dashboard_router)
 app.include_router(products_router)
 app.include_router(customers_router)
 app.include_router(orders_router)
