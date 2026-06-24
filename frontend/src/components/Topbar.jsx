@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
+import { useAuth } from '../context/AuthContext'
 
 export default function Topbar({ onOpenSearch }) {
   const notificationRef = useRef(null)
   const userRef = useRef(null)
 
   const { currency, setCurrency, notifications, availableCurrencies } = useApp()
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
 
   const [notifOpen, setNotifOpen] = useState(false)
   const [userOpen, setUserOpen] = useState(false)
@@ -23,6 +27,20 @@ export default function Topbar({ onOpenSearch }) {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [notifOpen, userOpen])
+
+  const handleLogout = () => {
+    setUserOpen(false)
+    logout()
+    navigate('/login', { replace: true })
+  }
+
+  const handleDashboard = () => {
+    setUserOpen(false)
+    navigate('/dashboard')
+  }
+
+  const displayName = user?.role || 'Administrator'
+  const isDemo = user?.demo === true
 
   return (
     <header className="topbar">
@@ -91,26 +109,33 @@ export default function Topbar({ onOpenSearch }) {
         {/* User profile & Currency */}
         <div style={{ position: 'relative' }} ref={userRef}>
           <button
-            className="btn btn-ghost btn-icon"
+            className="topbar-user-btn"
             aria-label="User menu"
             onClick={() => { setUserOpen(!userOpen); setNotifOpen(false) }}
           >
-            <div style={{
-              width: 26, height: 26, borderRadius: '50%',
-              backgroundColor: 'var(--color-accent)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 11, fontWeight: 700, color: 'white', letterSpacing: '-0.02em'
-            }}>
-              A
+            <div className="topbar-avatar">
+              {displayName.charAt(0).toUpperCase()}
             </div>
+            <span className="topbar-user-name">{displayName}</span>
+            {isDemo && <span className="demo-session-badge">Demo</span>}
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" width="12" height="12" style={{ color: 'var(--color-text-tertiary)', flexShrink: 0 }}>
+              <path d="M4 6l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </button>
 
           {userOpen && (
             <div className="popover user-popover">
               <div className="user-info">
-                <div className="user-name">Ordeer Admin</div>
-                <div className="user-email">admin@ordeer.com</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <div className="user-name">{displayName}</div>
+                  {isDemo && <span className="demo-session-badge">Demo Session</span>}
+                </div>
+                <div className="user-email">
+                  {isDemo ? 'Demo environment — no real data' : 'admin@ordeer.io'}
+                </div>
               </div>
+
+              {/* Currency */}
               <div className="user-settings-section">
                 <div className="user-settings-title">Currency</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
@@ -125,6 +150,26 @@ export default function Topbar({ onOpenSearch }) {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Menu actions */}
+              <div className="user-menu-actions">
+                <button className="user-menu-action" onClick={handleDashboard}>
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="13" height="13">
+                    <rect x="1" y="1" width="6" height="6" rx="1" />
+                    <rect x="9" y="1" width="6" height="6" rx="1" />
+                    <rect x="1" y="9" width="6" height="6" rx="1" />
+                    <rect x="9" y="9" width="6" height="6" rx="1" />
+                  </svg>
+                  Dashboard
+                </button>
+                <button className="user-menu-action user-menu-action-danger" onClick={handleLogout}>
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="13" height="13">
+                    <path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3" strokeLinecap="round" />
+                    <path d="M10 11l3-3-3-3M13 8H6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Logout
+                </button>
               </div>
             </div>
           )}

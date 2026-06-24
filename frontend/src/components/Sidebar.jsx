@@ -57,7 +57,13 @@ export default function Sidebar({ collapsed, onToggle }) {
             <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
         </button>
-        <span className="sidebar-brand-name">Ordeer</span>
+        <div className="sidebar-logo-wrap">
+          <img
+            src="/ordeer-logo.png"
+            alt="Ordeer"
+            className="sidebar-brand-logo"
+          />
+        </div>
       </div>
 
       <nav className="sidebar-nav">
