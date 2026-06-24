@@ -10,6 +10,8 @@ Responsibilities
 * Decrement ``stock_quantity`` for each product.
 * Persist the ``Order`` and its ``OrderItem`` records atomically inside a
   single database transaction (commit / rollback is managed here).
+* Allow updating order status via ``update_order_status``.
+* Search orders by id or customer name via ``search_orders``.
 
 All public functions accept a SQLAlchemy ``Session`` as their first argument.
 """
@@ -18,10 +20,10 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.models.order import Order
+from app.models.order import Order, OrderStatus
 from app.models.order_item import OrderItem
 from app.models.product import Product
 from app.schemas.order import OrderCreate
@@ -67,6 +69,14 @@ class EmptyOrderError(Exception):
         super().__init__("An order must contain at least one item.")
 
 
+class OrderNotFoundError(Exception):
+    """Raised when an order with the requested id does not exist."""
+
+    def __init__(self, order_id: int) -> None:
+        self.order_id = order_id
+        super().__init__(f"Order with id={order_id} not found.")
+
+
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
@@ -96,18 +106,21 @@ def _get_product_or_raise(db: Session, product_id: int) -> Product:
 
 def get_order(db: Session, order_id: int) -> Order:
     """
-    Return a single order with its ``order_items`` eagerly loaded.
+    Return a single order with customer and order_items eagerly loaded.
 
-    Raises ``ValueError`` if the order does not exist.
+    Raises ``OrderNotFoundError`` if the order does not exist.
     """
     stmt = (
         select(Order)
         .where(Order.id == order_id)
-        .options(selectinload(Order.order_items))
+        .options(
+            selectinload(Order.order_items).selectinload(OrderItem.product),
+            selectinload(Order.customer),
+        )
     )
     order = db.scalars(stmt).first()
     if order is None:
-        raise ValueError(f"Order with id={order_id} not found.")
+        raise OrderNotFoundError(order_id)
     return order
 
 
@@ -131,6 +144,43 @@ def get_all_orders(
     return list(db.scalars(stmt).all())
 
 
+def search_orders(db: Session, q: str, *, limit: int = 20) -> list[dict]:
+    """
+    Search orders by id (exact) or customer name (case-insensitive substring).
+    Returns lightweight result dicts suitable for the search endpoint.
+    """
+    from app.models.customer import Customer  # noqa: PLC0415
+
+    q = q.strip()
+    if not q:
+        return []
+
+    # Build filter: match by order id if query is numeric, always match by customer name
+    filters = [Customer.full_name.ilike(f"%{q}%")]
+    if q.isdigit():
+        filters.append(Order.id == int(q))
+
+    stmt = (
+        select(Order, Customer.full_name.label("customer_name"))
+        .join(Customer, Order.customer_id == Customer.id)
+        .where(or_(*filters))
+        .order_by(Order.created_at.desc())
+        .limit(limit)
+    )
+    rows = db.execute(stmt).all()
+    return [
+        {
+            "id": row.Order.id,
+            "customer_id": row.Order.customer_id,
+            "status": row.Order.status,
+            "total_amount": row.Order.total_amount,
+            "created_at": row.Order.created_at,
+            "customer_name": row.customer_name,
+        }
+        for row in rows
+    ]
+
+
 # ---------------------------------------------------------------------------
 # Write operations
 # ---------------------------------------------------------------------------
@@ -146,13 +196,9 @@ def create_order(db: Session, data: OrderCreate) -> Order:
     3. Verify sufficient stock for every item (fail fast on first shortage).
     4. Calculate per-item subtotals and the order total.
     5. Decrement ``stock_quantity`` for every product.
-    6. Persist the ``Order`` record.
+    6. Persist the ``Order`` record (status defaults to ``pending``).
     7. Persist all ``OrderItem`` records.
     8. Commit; refresh and return the fully hydrated ``Order``.
-
-    The session is rolled back automatically if any exception is raised before
-    the commit, because ``Session`` used with ``autocommit=False`` (default)
-    only persists changes on an explicit ``commit()``.
 
     Raises
     ------
@@ -172,7 +218,6 @@ def create_order(db: Session, data: OrderCreate) -> Order:
     _get_customer_or_raise(db, data.customer_id)
 
     # --- Steps 2 & 3: validate all products and stock in a single pass ------
-    # Collect products first so we touch the DB once per product, not twice.
     products: dict[int, Product] = {}
     for item in data.items:
         if item.product_id not in products:
@@ -198,7 +243,6 @@ def create_order(db: Session, data: OrderCreate) -> Order:
     # --- Steps 4 & 5: compute financials, decrement stock -------------------
     total_amount = Decimal("0.00")
     line_items: list[tuple[int, int, Decimal, Decimal]] = []
-    # (product_id, quantity, unit_price, subtotal)
 
     for item in data.items:
         product = products[item.product_id]
@@ -215,6 +259,7 @@ def create_order(db: Session, data: OrderCreate) -> Order:
     order = Order(
         customer_id=data.customer_id,
         total_amount=total_amount,
+        status=OrderStatus.pending,
     )
     db.add(order)
     db.flush()  # populate order.id without committing yet
@@ -232,9 +277,22 @@ def create_order(db: Session, data: OrderCreate) -> Order:
     # --- Step 8: commit and return -----------------------------------------
     db.commit()
     db.refresh(order)
+    db.refresh(order, attribute_names=["order_items"])
+    return order
 
-    # Eagerly load order_items so the caller can serialise without an
-    # additional query (avoids lazy-load outside the session).
+
+def update_order_status(db: Session, order_id: int, status: OrderStatus) -> Order:
+    """
+    Update the status of an existing order.
+
+    Raises ``OrderNotFoundError`` if the order does not exist.
+    """
+    order = db.get(Order, order_id)
+    if order is None:
+        raise OrderNotFoundError(order_id)
+    order.status = status
+    db.commit()
+    db.refresh(order)
     db.refresh(order, attribute_names=["order_items"])
     return order
 
@@ -243,11 +301,13 @@ def delete_order(db: Session, order_id: int) -> None:
     """
     Delete an order (and its items via cascade) by id.
 
-    Raises ``ValueError`` if the order does not exist.
+    Raises ``OrderNotFoundError`` if the order does not exist.
 
     Note: Stock is NOT restored on deletion — if that behaviour is required
     it should be an explicit business decision added here.
     """
-    order = get_order(db, order_id)
+    order = db.get(Order, order_id)
+    if order is None:
+        raise OrderNotFoundError(order_id)
     db.delete(order)
     db.commit()

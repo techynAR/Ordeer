@@ -42,3 +42,17 @@ class ProductOrderItemDetail(BaseModel):
 
 class ProductDetailResponse(ProductResponse):
     order_items: list[ProductOrderItemDetail] = []
+    total_revenue: Decimal = Decimal("0.00")
+    order_count: int = 0
+    last_ordered_at: datetime | None = None
+
+
+class ProductSearchResult(BaseModel):
+    """Lightweight result for search endpoint."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    sku: str
+    price: Decimal
+    stock_quantity: int

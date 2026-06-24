@@ -8,11 +8,14 @@ boundary and session lifecycle.
 
 from __future__ import annotations
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from decimal import Decimal
+
+from sqlalchemy import func, or_, select
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.customer import Customer
-from app.schemas.customer import CustomerCreate
+from app.models.order import Order
+from app.schemas.customer import CustomerCreate, CustomerDetailResponse, CustomerUpdate
 
 
 # ---------------------------------------------------------------------------
@@ -39,12 +42,44 @@ class CustomerHasOrdersError(Exception):
 # Read operations
 # ---------------------------------------------------------------------------
 
-def get_customer(db: Session, customer_id: int) -> Customer:
-    """Return a single customer by primary key, or raise ``CustomerNotFoundError``."""
-    customer = db.get(Customer, customer_id)
+def get_customer(db: Session, customer_id: int) -> CustomerDetailResponse:
+    """
+    Return a single customer with orders and revenue aggregates.
+
+    Raises ``CustomerNotFoundError`` if the customer does not exist.
+    """
+    customer = (
+        db.scalars(
+            select(Customer)
+            .where(Customer.id == customer_id)
+            .options(selectinload(Customer.orders))
+        ).first()
+    )
     if customer is None:
         raise CustomerNotFoundError(customer_id)
-    return customer
+
+    orders = customer.orders
+    total_revenue = sum((o.total_amount for o in orders), Decimal("0.00"))
+    order_count = len(orders)
+
+    return CustomerDetailResponse(
+        id=customer.id,
+        full_name=customer.full_name,
+        email=customer.email,
+        phone=customer.phone,
+        created_at=customer.created_at,
+        orders=[
+            {
+                "id": o.id,
+                "status": o.status.value if hasattr(o.status, "value") else str(o.status),
+                "total_amount": o.total_amount,
+                "created_at": o.created_at,
+            }
+            for o in sorted(orders, key=lambda o: o.created_at, reverse=True)
+        ],
+        total_revenue=total_revenue,
+        order_count=order_count,
+    )
 
 
 def get_all_customers(
@@ -55,6 +90,28 @@ def get_all_customers(
 ) -> list[Customer]:
     """Return a paginated list of all customers ordered by id."""
     stmt = select(Customer).order_by(Customer.id).offset(skip).limit(limit)
+    return list(db.scalars(stmt).all())
+
+
+def search_customers(db: Session, q: str, *, limit: int = 20) -> list[Customer]:
+    """
+    Search customers by name, email, or phone (case-insensitive substring).
+    """
+    q = q.strip()
+    if not q:
+        return []
+    stmt = (
+        select(Customer)
+        .where(
+            or_(
+                Customer.full_name.ilike(f"%{q}%"),
+                Customer.email.ilike(f"%{q}%"),
+                Customer.phone.ilike(f"%{q}%"),
+            )
+        )
+        .order_by(Customer.full_name)
+        .limit(limit)
+    )
     return list(db.scalars(stmt).all())
 
 
@@ -75,6 +132,26 @@ def create_customer(db: Session, data: CustomerCreate) -> Customer:
     return customer
 
 
+def update_customer(db: Session, customer_id: int, data: CustomerUpdate) -> Customer:
+    """
+    Apply a partial update to an existing customer.
+
+    Only fields explicitly set on ``data`` (i.e. not ``None``) are written.
+    Raises ``CustomerNotFoundError`` if the customer does not exist.
+    """
+    customer = db.get(Customer, customer_id)
+    if customer is None:
+        raise CustomerNotFoundError(customer_id)
+
+    patch = data.model_dump(exclude_unset=True)
+    for field, value in patch.items():
+        setattr(customer, field, value)
+
+    db.commit()
+    db.refresh(customer)
+    return customer
+
+
 def delete_customer(db: Session, customer_id: int) -> None:
     """
     Delete a customer by id.
@@ -82,8 +159,16 @@ def delete_customer(db: Session, customer_id: int) -> None:
     Raises ``CustomerNotFoundError`` if the customer does not exist.
     Raises ``CustomerHasOrdersError`` if the customer has existing orders.
     """
-    customer = get_customer(db, customer_id)
-    if customer.orders:
+    customer = db.get(Customer, customer_id)
+    if customer is None:
+        raise CustomerNotFoundError(customer_id)
+
+    # Check for existing orders without eager-loading all of them
+    has_orders = db.scalar(
+        select(func.count()).select_from(Order).where(Order.customer_id == customer_id)
+    ) or 0
+    if has_orders > 0:
         raise CustomerHasOrdersError(customer_id)
+
     db.delete(customer)
     db.commit()

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import enum
 from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Numeric, func
+from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, Numeric, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -12,6 +13,14 @@ from app.db.base import Base
 if TYPE_CHECKING:
     from app.models.customer import Customer
     from app.models.order_item import OrderItem
+
+
+class OrderStatus(str, enum.Enum):
+    """Lifecycle states for an order."""
+    pending = "pending"
+    processing = "processing"
+    completed = "completed"
+    cancelled = "cancelled"
 
 
 class Order(Base):
@@ -28,10 +37,22 @@ class Order(Base):
         ForeignKey("customers.id"),
         nullable=False,
     )
+    status: Mapped[OrderStatus] = mapped_column(
+        Enum(OrderStatus, name="orderstatus"),
+        nullable=False,
+        default=OrderStatus.pending,
+        server_default=OrderStatus.pending.value,
+    )
     total_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
+        nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
         nullable=False,
     )
 

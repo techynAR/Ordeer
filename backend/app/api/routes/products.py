@@ -4,13 +4,19 @@ app/api/routes/products.py
 FastAPI router for the /products resource.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
-from app.schemas.product import ProductCreate, ProductResponse, ProductUpdate, ProductDetailResponse
+from app.schemas.product import (
+    ProductCreate,
+    ProductDetailResponse,
+    ProductResponse,
+    ProductSearchResult,
+    ProductUpdate,
+)
 from app.services import product_service
-from app.services.product_service import ProductNotFoundError, ProductHasOrdersError
+from app.services.product_service import ProductHasOrdersError, ProductNotFoundError
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -29,6 +35,22 @@ def create_product(
     db: Session = Depends(get_db),
 ) -> ProductResponse:
     return product_service.create_product(db, data)
+
+
+# ---------------------------------------------------------------------------
+# GET /products/search
+# ---------------------------------------------------------------------------
+@router.get(
+    "/search",
+    response_model=list[ProductSearchResult],
+    summary="Search products by name or SKU",
+)
+def search_products(
+    q: str = Query(..., min_length=1, description="Search query"),
+    limit: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+) -> list[ProductSearchResult]:
+    return product_service.search_products(db, q, limit=limit)
 
 
 # ---------------------------------------------------------------------------
@@ -53,7 +75,7 @@ def list_products(
 @router.get(
     "/{product_id}",
     response_model=ProductDetailResponse,
-    summary="Get a product by id",
+    summary="Get a product by id (with revenue aggregates)",
 )
 def get_product(
     product_id: int,

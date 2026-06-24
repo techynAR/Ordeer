@@ -24,8 +24,10 @@ class RecentOrder(BaseModel):
 
     id: int
     customer_name: str
+    status: str
     total_amount: Decimal
     created_at: datetime
+
 
 
 class RecentCustomer(BaseModel):

@@ -73,6 +73,7 @@ def get_dashboard_stats(db: Session) -> DashboardStats:
             {
                 "id": o.Order.id,
                 "customer_name": o.customer_name,
+                "status": o.Order.status.value if hasattr(o.Order.status, "value") else str(o.Order.status),
                 "total_amount": o.Order.total_amount,
                 "created_at": o.Order.created_at,
             }
