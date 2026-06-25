@@ -1,0 +1,28 @@
+# Git
+.git
+.gitignore
+
+# Dependencies
+node_modules/
+
+# Production builds and cache
+dist/
+dist-ssr/
+.cache/
+.vite/
+.eslintcache
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment variables
+.env
+.env.local
+.env.*
+
+# OS Files
+.DS_Store
+Thumbs.db
