@@ -1,5 +1,11 @@
 # Ordeer
 
+Ordeer is a production-grade, high-density **Inventory & Order Management Platform** designed to streamline operations, reduce transaction processing latency, and guarantee atomic inventory validation for retail and distribution businesses.
+
+![Dashboard](docs/screenshots/dashboard-overview.png)
+
+<div align="center">
+
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](#)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688.svg?logo=fastapi&logoColor=white)](#)
 [![React](https://img.shields.io/badge/Frontend-React-61DAFB.svg?logo=react&logoColor=white)](#)
@@ -7,142 +13,76 @@
 [![Docker](https://img.shields.io/badge/Infrastructure-Docker-2496ED.svg?logo=docker&logoColor=white)](#)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Ordeer is a Modern Inventory & Order Management Platform designed to streamline operations, reduce transaction processing times, and optimize inventory validation for small-to-medium retail and distribution businesses.
+</div>
 
 ---
 
-## Table of Contents
-
-- [About](#about)
-- [Key Features](#key-features)
-- [Technology Stack](#technology-stack)
-- [Architecture & File Structure](#architecture--file-structure)
-- [Operational Workflow](#operational-workflow)
-- [Design Philosophy](#design-philosophy)
-- [Technical Decisions](#technical-decisions)
-- [Installation & Local Setup](#installation--local-setup)
-- [Environment Variables](#environment-variables)
-- [API Documentation](#api-documentation)
-- [Testing](#testing)
-- [Deployment](#deployment)
-- [Screenshots Guide](#screenshots-guide)
-- [Live Demo & Credentials](#live-demo--credentials)
-- [Future Improvements](#future-improvements)
-- [License](#license)
-- [Author](#author)
+> [!TIP]
+> **Live Sandbox Access**
+> - **Client URL:** [https://ordeer.techynar.com](https://ordeer.techynar.com)
+> - **API Endpoint:** [https://api.ordeer.techynar.com](https://api.ordeer.techynar.com)
+> - **Interactive API Docs:** [https://api.ordeer.techynar.com/docs](https://api.ordeer.techynar.com/docs)
+>
+> **Recruiter Fast-Pass Credentials**
+> - **Username:** `admin`
+> - **Password:** `admin`
+> - *You can also bypass manual typing by clicking the **Demo Login** button on the sign-in screen to authenticate instantly via simulated session storage.*
 
 ---
 
-## About
+## Features at a Glance
 
-Ordeer is built to resolve the operational bottlenecks that plague standard, spreadsheet-like legacy inventory management systems. In environments with rapid sales cycles and shared inventory, systems often suffer from poor transactional validation (leading to overselling), sluggish page navigation, and low data density that slows down worker execution.
-
-Ordeer addresses these challenges directly:
-- **The Problem Solved:** Eliminates stock race conditions and inventory overselling during checkout through atomic, database-level lock-based validation. It also removes high cognitive loads by maximizing screen real estate and omitting non-essential decorative elements.
-- **Intended Audience:** Designed for logistics coordinators, store operators, order fulfillment teams, and developers or recruiters evaluating modern operational UI architectures.
-- **Architectural Rationale:** The system separates backend transaction processing (FastAPI/PostgreSQL) from frontend presentation (React SPA). This decoupled pattern allows for lightweight frontend builds, ultra-fast client state manipulation, and decoupled hosting.
-
----
-
-## Key Features
-
-### Dashboard
-* **Operational Overview:** Instant reporting on total orders, revenue metrics, total customers, and overall products.
-* **Low-Stock Alerting:** Highlights products that have dropped below critical thresholds, enabling rapid replenishment.
-* **Activity Stream:** A list of recent orders with colored badge status flags (Pending, Completed).
-* **Quick Actions:** Instant buttons to initiate the Order Wizard, add new products, or record new customers.
-
-### Product Management
-* **Inventory Control:** Complete CRUD interfaces for managing item name, price, stock levels, and unique SKUs.
-* **Inline Search & Filtering:** Dynamic client-side search across SKU and product names.
-* **Data-Dense Tables:** Interactive tables displaying stock levels, price models, and timestamps.
-* **Stock Constraints:** Strict backend database constraints blocking negative stock values and duplicate SKUs.
-
-### Customer Management
-* **Customer Directory:** CRUD functions for keeping track of customer names, email addresses, and phone contacts.
-* **Historical Tracking:** Tabular ledger of past customer orders and aggregated lifetime spend.
-* **Inline Statistics:** Live calculations showing total orders placed and total revenue generated per customer.
-
-### Order Management
-* **Guided Order Wizard:** A multi-step flow checking customer selection, item cataloging, stock validation, and checkout.
-* **Live In-Wizard Verification:** Visual indicators indicating if stock is sufficient, preventing negative inventory selections before form submission.
-* **Atomic Processing:** Stock quantities are updated synchronously within a single transaction database unit.
-
-### User Experience (UX)
-* **Single-Page Application (SPA):** Fluid screen state manipulation with no full-page reloads.
-* **Command Palette:** Quick search interface accessed via `Cmd+K` or `Ctrl+K` to search orders, products, and customers globally from any screen.
-* **Slide-over Drawer Panels:** Form interactions use sliding slide-over drawers to keep table data visible behind the form.
-* **Toast Notification Engine:** Non-blocking alerts for actions, form validations, and network error reporting.
-* **Mobile-Responsive Layouts:** Collapsible sidebar navigation optimized for field workers using smartphones and tablets.
-* **Recruiter-Friendly Authentications:** Fully operational demo login system bypassing manual form completion.
+* **Live Dashboard Analytics:** Unified monitoring of sales revenue, low-stock warnings, and real-time transaction activity.
+* **Strict SKU & Stock Control:** Intuitive catalog management with backend database-level rules preventing overselling or duplicate SKUs.
+* **Active Customer Directory:** Seamless customer profile registration, order histories, and automated lifetime-spend metrics.
+* **Guided Order Wizard:** A multi-step transaction process featuring interactive stock-level checks before checkout.
+* **Global Command Palette:** Instant keyboard navigation (`Cmd+K` / `Ctrl+K`) to search products, orders, and customers from any page.
+* **Responsive Design:** Adaptive layouts styled with custom CSS properties, optimized for handheld warehouse scanners and mobile phones.
+* **Concurrent Transaction Safeguards:** Underpinned by PostgreSQL transaction locks to eliminate double-selling race conditions.
 
 ---
 
-## Technology Stack
+## Why Ordeer? (The Problem & Solution)
 
-| Layer | Component | Technology / Library | Description |
-| :--- | :--- | :--- | :--- |
-| **Frontend** | Core Web Framework | React 18 (Vite SPA) | Component-driven UI development with hot module reloading. |
-| | Routing | React Router 6 | Declarative client-side routing. |
-| | HTTP Client | Axios | Promise-based backend communication. |
-| | Design System | Vanilla CSS (v2 Tokens) | custom property-driven design system with native system font stacks. |
-| **Backend** | API Engine | FastAPI | Async Python web framework. |
-| | Web Server | Uvicorn | High-performance ASGI server. |
-| | ORM | SQLAlchemy 2.0 | Modern object-relational mapping with type-safety support. |
-| | Validation | Pydantic v2 | Python type annotations data validation. |
-| **Database** | Database Engine | PostgreSQL 16 | Relational database handling ACID-compliant transactions. |
-| **Infrastructure**| Development Environment | Docker / Docker Compose | Containerized local database orchestration. |
-| **Deployment** | Backend Hosting | Render | Cloud service for API execution. |
-| | Frontend Hosting | Vercel | Static hosting optimized for React SPA. |
-| **Tooling** | Version Control | Git / GitHub | Code management. |
+Traditional legacy inventory systems often rely on spreadsheet-like UIs and polling APIs. In environments with shared stock and rapid order cycles, this architecture fails, causing data inconsistency and worker frustration.
+
+| Legacy System Bottlenecks | The Ordeer Solution |
+| :--- | :--- |
+| **Overselling & Race Conditions:** Two agents checkout the same item simultaneously, leading to negative stock levels or failed delivery promises. | **ACID-Compliant Row Locking:** Employs backend transactional row locks (`SELECT FOR UPDATE`), preventing race conditions at the database level. |
+| **High Cognitive Load:** Spreadsheets with hundred-column layouts distract operators and increase training times. | **Information-Dense Minimalism:** High-density, border-separated workspaces. Modals and slide-overs preserve context. |
+| **Navigational Friction:** Clicking back-and-forth between pages to check stock, look up orders, or register customer profiles. | **Global Command Palette:** Complete lookup and control without lifting hands from the keyboard. |
+| **Heavy UI Overhead:** Unnecessary styling engines (like Tailwind) and bloated script payloads slow down field devices. | **Custom CSS & Vite Build:** Pure, decoupled CSS system variables and Vite SPA for near-instant rendering. |
 
 ---
 
-## Architecture & File Structure
+## System Architecture & Workflow
 
-The workspace is organized as a monorepo splitting client and server logic:
+Ordeer splits client presentation and transactional server operations into a clean, decoupled monorepo:
 
 ```text
-Ordeer/
-├── backend/
-│   ├── app/
-│   │   ├── api/            # API routing and handler layers
-│   │   │   ├── deps.py     # Database session dependency injector
-│   │   │   └── routes/     # Resource routes (dashboard, products, customers, orders)
-│   │   ├── core/           # Environment configuration loaders (pydantic-settings)
-│   │   ├── db/             # Session engines and metadata base classes
-│   │   ├── models/         # SQLAlchemy database models
-│   │   ├── schemas/        # Pydantic schemas for request/response serialization
-│   │   └── services/       # Service layer containing core business logic and validations
-│   │       ├── customer_service.py
-│   │       ├── order_service.py
-│   │       └── product_service.py
-│   ├── scripts/            # Standalone automation & smoke-testing tools
-│   ├── .env.example        # Environment variable templates for local execution
-│   ├── Dockerfile          # Container configuration for backend services
-│   ├── requirements.txt    # Declared Python dependencies
-│   └── app/main.py         # Application instantiation and router registrations
-├── frontend/
-│   ├── public/             # Static logos and assets
-│   ├── src/
-│   │   ├── api/            # API integration modules mapping to backend resources
-│   │   ├── components/     # Reusable UI controls (OrderWizard, CommandPalette, Modals, SlideOver)
-│   │   ├── context/        # State managers (AppContext, AuthContext, ToastContext)
-│   │   ├── pages/          # View entry pages mapped to client routes
-│   │   ├── routes/         # Protected routes configurations
-│   │   └── styles/         # Ordeer Design System V2 CSS (index.css)
-│   ├── Dockerfile          # Container configuration for client environment
-│   ├── package.json        # Declared Node packages
-│   └── vite.config.js      # Vite build configurations and reverse proxy rules
-├── docker-compose.yml      # Developer local infrastructure (PostgreSQL container)
-└── README.md               # Main repository documentation
+                               ┌───────────────────────────────────┐
+                               │         Vite React Client         │
+                               │  (SPA / Slide-Overs / Command)    │
+                               └─────────────────┬─────────────────┘
+                                                 │
+                                                 │ HTTPS Requests
+                                                 ▼
+                               ┌───────────────────────────────────┐
+                               │          FastAPI Server           │
+                               │ (Lifespan Context / Pydantic v2)  │
+                               └─────────────────┬─────────────────┘
+                                                 │
+                                                 │ SQLAlchemy 2.0 (Async Session)
+                                                 ▼
+                               ┌───────────────────────────────────┐
+                               │        PostgreSQL Database        │
+                               │  (ACID / SELECT FOR UPDATE Locks) │
+                               └───────────────────────────────────┘
 ```
 
----
+### Transactional Lifecycle Flow
 
-## Operational Workflow
-
-The following flowchart details the transaction lifecycle of an order in Ordeer, tracing state transitions from user action down to database-level lock-based validation.
+The diagram below details the path of an order creation transaction, showing how the backend secures stock quantities before committing modifications:
 
 ```mermaid
 graph TD
@@ -163,36 +103,199 @@ graph TD
 
 ---
 
-## Design Philosophy
+## Core Product Modules
 
-The user interface of Ordeer is designed on several core principles:
-* **Information Density Over Decoration:** The layouts are inspired by systems like **Stripe** and **Linear**. Space is maximized, margins are compact, and borders replace background colors to reduce visual noise. Content is readable at a single glance.
-* **Workflow Continuity:** Modal windows and slide-over side drawers are used extensively (e.g. for creating customers and adding products). This prevents workers from losing context, keeping lists visible in the background while updating entities.
-* **Keyboard-First Operations:** The application implements global listener hooks (`Cmd+K` or `Ctrl+K`) that trigger a centralized command palette, enabling operators to look up records or navigate files entirely from their keyboard.
-* **Apple & Zoho Influence:** Typography relies on native Apple system fonts (`-apple-system, BlinkMacSystemFont`), ensuring rapid page load times and high-density, sharp lettering across Retina displays.
+### 1. Dashboard & Operations
+The central dashboard serves as an operations control room. It provides real-time updates on key performance indicators (KPIs)—including Total Revenue, Orders Processed, Customer Counts, and Active SKUs. A dedicated panel alerts warehouse operators of low-stock thresholds, allowing them to initiate restocks. Recent orders are displayed via a live status-badge activity stream.
 
----
-
-## Technical Decisions
-
-### FastAPI & Python Async
-FastAPI was selected for its native support for ASGI asynchronous paradigms, rendering it highly performant under concurrent query execution. By employing Pydantic, the application enforces compile-time type validation for all inbound network payloads, producing robust runtime interfaces and automatic OpenAPI generation.
-
-### React SPA & Vite
-React allows Ordeer to handle interactive state trees (like the multi-stage Order Wizard) without the latency of server-side page renders. Vite was chosen as the frontend builder due to its esbuild-powered bundler, reducing startup and build times to milliseconds.
-
-### SQLAlchemy 2.0 & PostgreSQL
-SQLAlchemy 2.0 provides modern Python type-safety annotations. PostgreSQL serves as the relational engine because of its transactional safety, supporting row-level locks (`with_for_update()`) which are critical for preventing race conditions in high-throughput retail environments.
-
-### Decoupled Custom CSS Style Engine
-Instead of incorporating CSS-utility bloat (like Tailwind CSS) that scatters styling details across markup, Ordeer isolates its design system into a single, cohesive `index.css` file. Utilizing CSS Custom Properties, the codebase maintains a uniform design system (spacing grids, animation times, radius sets, and semantic borders) which is simple to adjust.
+![Dashboard](docs/screenshots/dashboard-overview.png)
 
 ---
 
-## Installation & Local Setup
+### 2. Product & Inventory Management
+The product module displays inventory stocks, listing individual items with unique SKUs, price tags, and current quantities. It includes an interactive slide-over drawer that keeps the catalog table visible in the background while adding new products or updating existing items.
 
-### System Prerequisites
-Ensure you have the following software installed locally:
+![Products](docs/screenshots/products-list.png)
+
+#### Detailed Product Insights
+Clicking any product row opens its dedicated details sheet. This reveals aggregate lifecycles metrics (Total Revenue generated, Lifetime Order Counts, and the date of the last purchase) alongside a ledger listing every historical order containing the item.
+
+![Product Details](docs/screenshots/product-details.png)
+
+---
+
+### 3. Customer Directory
+The customer list maintains a record of customer contacts (names, emails, and phone numbers). It displays live-calculated metrics for each user, including lifetime orders placed and total spend.
+
+![Customers](docs/screenshots/customers-list.png)
+
+#### Customer Profiles & Ledger
+Opening a customer profile presents contact details alongside a chronological list of their order history.
+
+![Customer Details](docs/screenshots/customer-details.png)
+
+---
+
+### 4. Order Management
+The main orders table lists all completed and pending orders, complete with customer details, order creation timestamps, and final invoice values.
+
+![Orders](docs/screenshots/orders-list.png)
+
+#### Guided Order Wizard
+Initiating a sale launches a multi-stage Order Wizard. Operators select the customer, search and add items from the catalog, and adjust quantities. The wizard validates input against available stock in real-time, preventing workers from submitting an order with insufficient quantities.
+
+![Order Wizard](docs/screenshots/order-wizard.png)
+
+---
+
+### 5. UI Features & Keyboard Shortcuts
+
+#### Global Command Palette
+Pressing `Cmd+K` or `Ctrl+K` launches an overlay search input. This allows operators to quickly search for products, customers, or navigate directly to specific management views.
+
+![Command Palette](docs/screenshots/command-palette.png)
+
+#### Responsive Mobile Layout
+Designed for mobile warehouse terminals, the navigation sidebar collapses on smaller viewports. Layout items stack vertically to remain readable on handheld scanners and tablets.
+
+![Mobile](docs/screenshots/mobile-layout.png)
+
+---
+
+### 6. Authentication
+The login page handles access control. To make review easier for recruiters, a **Demo Login** option is available, which bypasses password verification and starts a mock administrator session immediately.
+
+![Login](docs/screenshots/login-screen.png)
+
+---
+
+## Codebase Structure
+
+The project is structured as a monorepo separating server-side Python logic and React frontend builds:
+
+```text
+Ordeer/
+├── backend/
+│   ├── app/
+│   │   ├── api/            # API routing and dependencies
+│   │   │   ├── deps.py     # Database session injection
+│   │   │   └── routes/     # Resource routes (dashboard, products, customers, orders)
+│   │   ├── core/           # Configuration loaders (pydantic-settings)
+│   │   ├── db/             # Session engines and metadata base classes
+│   │   ├── models/         # SQLAlchemy database models
+│   │   ├── schemas/        # Pydantic serialization models
+│   │   └── services/       # Core business logic & transactional validation
+│   │       ├── customer_service.py
+│   │       ├── order_service.py
+│   │       └── product_service.py
+│   ├── scripts/            # Database seeding & service testing utilities
+│   ├── .env.example        # Local configuration template
+│   ├── Dockerfile          # Server container configuration
+│   ├── requirements.txt    # Python dependencies
+│   └── app/main.py         # Application entry point
+├── frontend/
+│   ├── public/             # Static logos and assets
+│   ├── src/
+│   │   ├── api/            # Axios API wrappers
+│   │   ├── components/     # Reusable UI controls (Wizard, Command Palette, drawers)
+│   │   ├── context/        # State managers (Auth, App, Toast notifications)
+│   │   ├── pages/          # Layout views (Products, Customers, Orders, Dashboard)
+│   │   ├── routes/         # Router declarations & authentication guards
+│   │   └── styles/         # Ordeer Design System V2 CSS (index.css)
+│   ├── Dockerfile          # Client container configuration
+│   ├── package.json        # Node packages
+│   └── vite.config.js      # Vite build and proxy definitions
+├── docker-compose.yml      # Local database stack setup (PostgreSQL)
+└── README.md               # Application documentation
+```
+
+---
+
+## API Integration Examples
+
+The backend provides type-safe REST endpoints built with FastAPI. Below are examples of key operations.
+
+### Product Creation (`POST /api/products`)
+
+Creates a new product SKU in the catalog.
+
+#### Request Payload
+```json
+{
+  "name": "Wireless Mechanical Keyboard",
+  "sku": "KB-WRLS-MX87",
+  "price": 129.99,
+  "stock_quantity": 45
+}
+```
+
+#### Response (201 Created)
+```json
+{
+  "id": 12,
+  "name": "Wireless Mechanical Keyboard",
+  "sku": "KB-WRLS-MX87",
+  "price": "129.99",
+  "stock_quantity": 45,
+  "created_at": "2026-06-25T12:00:00.123456Z",
+  "updated_at": "2026-06-25T12:00:00.123456Z"
+}
+```
+
+---
+
+### Create Transactional Order (`POST /api/orders`)
+
+Creates an order and deducts inventory stock. This operation runs inside a database transaction using `SELECT FOR UPDATE` to lock product rows, ensuring stock levels are verified before checkout completes.
+
+#### Request Payload
+```json
+{
+  "customer_id": 8,
+  "items": [
+    {
+      "product_id": 12,
+      "quantity": 2
+    }
+  ]
+}
+```
+
+#### Response (201 Created)
+```json
+{
+  "id": 42,
+  "customer_id": 8,
+  "status": "COMPLETED",
+  "total_amount": "259.98",
+  "created_at": "2026-06-25T12:05:00.987654Z",
+  "updated_at": "2026-06-25T12:05:00.987654Z",
+  "customer": {
+    "id": 8,
+    "full_name": "Alice Tester",
+    "email": "alice@example.com",
+    "phone": "+1-555-0100"
+  },
+  "items": [
+    {
+      "id": 91,
+      "product_id": 12,
+      "quantity": 2,
+      "unit_price": "129.99",
+      "subtotal": "259.98"
+    }
+  ]
+}
+```
+
+---
+
+## Technical Details
+
+<details>
+<summary><b>Local Installation & Development</b></summary>
+
+### Prerequisites
 - Python 3.11+
 - Node.js 18+ & npm
 - Docker Desktop
@@ -200,137 +303,99 @@ Ensure you have the following software installed locally:
 ---
 
 ### Backend Service Setup
-
 1. **Navigate to the Backend Directory:**
    ```bash
    cd backend
    ```
-
-2. **Establish a Python Virtual Environment:**
+2. **Establish a Python Virtual Environment & Install Dependencies:**
    ```bash
    python3 -m venv .venv
    source .venv/bin/activate
-   ```
-
-3. **Install Dependencies:**
-   ```bash
    pip install -r requirements.txt
    ```
-
-4. **Configure Environment Variables:**
-   Copy the example environment file and configure connection settings.
+3. **Configure Environment Variables:**
    ```bash
    cp .env.example .env
    ```
-   *Edit `.env` if your local database credentials differ from the default.*
-
-5. **Start Infrastructure (PostgreSQL Database):**
-   Run the postgres service using docker-compose from the project's root folder:
+   *Edit `.env` if your local database credentials differ from the defaults.*
+4. **Start PostgreSQL Container:**
    ```bash
    cd ..
    docker compose up -d
    ```
-   This will spin up a PostgreSQL instance on port `5432` with credentials:
-   - Database name: `ordeer`
-   - Username: `ordeer`
-   - Password: `ordeer`
-
-6. **Initialize Database Tables:**
-   Ordeer handles table initialization dynamically on startup via its FastAPI lifespan context manager. However, you can verify table generation or run a manual initialization by launching the API once.
-
-7. **Run the Development API Server:**
-   Ensure you are in the `/backend` folder and run:
+   This spins up PostgreSQL on port `5432` with username `ordeer`, password `ordeer`, and database name `ordeer`.
+5. **Run the FastAPI Development Server:**
    ```bash
    cd backend
-   uvicorn app.main:app --reload --port 8000
+   .venv/bin/python -m uvicorn app.main:app --reload --port 8000
    ```
-   The backend API will now be active at `http://localhost:8000`.
+   The backend API will be active at `http://localhost:8000`.
 
 ---
 
 ### Frontend Client Setup
-
 1. **Navigate to the Frontend Directory:**
    ```bash
    cd frontend
    ```
-
 2. **Install Node Packages:**
    ```bash
    npm install
    ```
-
 3. **Start the Vite Client Server:**
    ```bash
    npm run dev
    ```
-   Vite will launch the local client (typically at `http://localhost:5173` or `http://localhost:5174`).
-
-4. **Verify Proxy Connectivity:**
-   Ensure that backend API is active on port `8000`. Vite's configuration proxies all `/api` requests automatically.
-
-5. **Build for Production:**
-   To verify production builds:
+   Vite launches the local client (typically at `http://localhost:5173`). Vite proxies all `/api` requests to `http://localhost:8000`.
+4. **Build for Production:**
    ```bash
    npm run build
    ```
+</details>
 
----
-
-## Environment Variables
+<details>
+<summary><b>Environment Variables Reference</b></summary>
 
 ### Backend Configuration (`backend/.env`)
-
 | Variable Name | Required | Default Value | Description |
 | :--- | :--- | :--- | :--- |
-| `DATABASE_URL` | Yes | `postgresql://postgres:postgres@localhost:5432/ordeer` | The SQLAlchemy connection string pointing to your PostgreSQL instance. |
+| `DATABASE_URL` | Yes | `postgresql://ordeer:ordeer@localhost:5432/ordeer` | SQLAlchemy connection string pointing to the PostgreSQL instance. |
 
 ### Frontend Configuration
-The frontend communicates via absolute path relative routing `/api`, which Vite proxies to `http://localhost:8000` during development. In production deployments, configure your proxy or environment variable redirects to map `/api` to the hosting backend domain.
+The frontend makes API requests using the absolute path prefix `/api`. In development, Vite proxies this to port `8000`. For production, configure the hosting server's reverse proxy or rewrite rules to forward `/api` calls to the backend domain.
+</details>
 
----
+<details>
+<summary><b>Interactive API Documentation</b></summary>
 
-## API Documentation
+FastAPI generates interactive API documentation from Pydantic schemas. With the backend server running, you can access:
+- **Interactive Swagger UI:** [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Alternative ReDoc UI:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
+</details>
 
-FastAPI dynamically generates interactive OpenAPI specifications based on backend Pydantic schemas. 
+<details>
+<summary><b>Service Smoke Testing</b></summary>
 
-With the backend server running, you can access:
-- **Interactive Swagger UI Documentation:** [http://localhost:8000/docs](http://localhost:8000/docs)
-- **Alternative ReDoc Documentation:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
+Ordeer includes a service testing script to verify operations and transactional constraints.
 
-These paths display all resources, expected request schemas, status codes, and allow developers to test endpoints interactively.
-
----
-
-## Testing
-
-### Backend Automated Smoke Testing
-Ordeer contains a standalone service testing script to verify operations and transactional consistency without launching the web servers. 
-
-To execute the service smoke test:
-1. Ensure your PostgreSQL database is running.
-2. Run the script from the `/backend` directory:
+1. Ensure the PostgreSQL database container is running.
+2. Run the script from the `backend/` directory:
    ```bash
-   cd backend
-   python -m scripts.service_smoke_test
-   ```
-   Or explicitly include the path to your environment:
-   ```bash
-   PYTHONPATH=backend python backend/scripts/service_smoke_test.py
+   .venv/bin/python -m scripts.service_smoke_test
    ```
 
-The script runs sequentially, executing the following validation blocks:
-- **Step 1:** Customer Creation (validates serialization and unique email flags).
-- **Step 2:** Product Creation (registers target items with SKU profiles and pricing constraints).
-- **Step 3:** Order Verification (tests order placement, item registration, and automatic stock deduction).
-- **Step 4:** Transaction Rollback Verification (attempts to order more items than currently in stock; verifies `InsufficientStockError` is thrown, the transaction is rolled back, and stock remains unchanged).
+The script runs the following checks:
+- **Step 1: Customer Creation:** Validates serialization and email uniqueness.
+- **Step 2: Product Creation:** Verifies SKU profile registry and pricing constraints.
+- **Step 3: Order Verification:** Tests order placement, stock deduction, and calculations.
+- **Step 4: Rollback Verification:** Attempts to order more items than are in stock. It verifies that an `InsufficientStockError` is thrown, the transaction rolls back, and stock levels remain unchanged.
+</details>
 
----
-
-## Deployment
+<details>
+<summary><b>Production Deployment Guide</b></summary>
 
 ### Backend Deployment (Render)
-1. Register a web service on Render connected to your Ordeer repository.
+1. Register a web service on Render connected to the repository.
 2. Select environment type: **Python**.
 3. Set the **Build Command**:
    ```bash
@@ -340,63 +405,25 @@ The script runs sequentially, executing the following validation blocks:
    ```bash
    cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
    ```
-5. Configure the `DATABASE_URL` environment variable to point to a production PostgreSQL database.
+5. Add a `DATABASE_URL` environment variable pointing to your production database.
 
 ### Frontend Deployment (Vercel)
-1. Register a project on Vercel connected to your Ordeer repository.
+1. Add a project on Vercel connected to the repository.
 2. Set the **Root Directory** to `frontend`.
 3. Select **Vite** as the framework preset.
-4. Set **Build Command** to `npm run build`.
-5. Set **Output Directory** to `dist`.
-6. Configure Vercel's routes (`vercel.json`) to forward all `/api/(.*)` requests to your Render API domain.
+4. Set the **Build Command** to `npm run build` and **Output Directory** to `dist`.
+5. Configure Vercel's routes (`vercel.json`) to forward all `/api/(.*)` requests to the backend API domain.
+</details>
 
 ---
 
-## Screenshots Guide
+## Future Roadmap
 
-To document visual layouts, capture the following states of the Ordeer interface and save them into the `docs/screenshots/` folder:
-
-| Screen / Component | Navigate To | Capture Target | Suggested Filename |
-| :--- | :--- | :--- | :--- |
-| **Login Screen** | `/login` | The landing interface showing the Ordeer branding, fields for Admin, and the "Demo Login" button. | `login-screen.png` |
-| **Dashboard Overview** | `/dashboard` | The dashboard layout displaying overall metrics, the low stock alerts panel, and the list of recent transactions. | `dashboard-overview.png` |
-| **Products List** | `/products` | The product inventory grid containing SKUs, price tags, and current stock counts. | `products-list.png` |
-| **Create Product Drawer** | `/products` → Click `+ Add Product` | The product list with the right-side slide-over form active for registering a new item. | `create-product.png` |
-| **Product Details** | `/products` → Click a product row | The detailed view showing transaction histories and analytics of the selected product. | `product-details.png` |
-| **Customers List** | `/customers` | The customer directory displaying names, email records, and lifetime orders counts. | `customers-list.png` |
-| **Customer Details** | `/customers` → Click a customer row | The customer panel showing demographic records alongside their specific order history. | `customer-details.png` |
-| **Orders List** | `/orders` | The order index grid containing tracking keys, timestamps, customer details, and total sale values. | `orders-list.png` |
-| **Order Wizard Step** | `/orders` → Click `+ New Order` | The multi-stage Order Wizard modal, showing product selection and customer linking. | `order-wizard.png` |
-| **Order Details** | `/orders` → Click an order row | The invoice-style detailed view displaying order items, pricing totals, and status indicators. | `order-details.png` |
-| **Command Palette Active**| Anywhere → Hit `Cmd+K` | The overlay UI displaying flat search results across orders, customers, and products. | `command-palette.png` |
-| **Mobile Layout** | `/dashboard` (inspect mobile viewport) | The mobile workspace showing the collapsed navigation layout and stacked metrics cards. | `mobile-layout.png` |
-
----
-
-## Live Demo & Credentials
-
-* **Live Client URL:** [https://ordeer.techynar.com](https://ordeer.techynar.com) *(Placeholder)*
-* **Live API Endpoint:** [https://api.ordeer.techynar.com](https://api.ordeer.techynar.com) *(Placeholder)*
-* **Interactive API Documentation:** [https://api.ordeer.techynar.com/docs](https://api.ordeer.techynar.com/docs) *(Placeholder)*
-
-### Recruiter Evaluation Credentials
-To facilitate rapid testing for recruiters, hiring managers, and QA teams, Ordeer includes a pre-configured administrator account:
-
-- **Username:** `admin`
-- **Password:** `admin`
-
-Alternatively, you may click the **Demo Login** button on the sign-in panel, which bypasses credential validation and generates a mock administrator session directly in browser local storage.
-
----
-
-## Future Improvements
-
-* **Role-Based Access Control (RBAC):** Implementing distinct permissions for warehouse staff (stock modification only) and store managers (access to pricing, sales analytics, and customer directory profiles).
-* **Database Pagination & Server-side Queries:** Replacing client-side sorting and paging with database query limits (`LIMIT` and `OFFSET`) to support scaling to millions of product SKUs.
-* **Real-time Synchronization:** Adding WebSockets to push instant dashboard updates, notifications, and stock warnings when inventory levels are depleted.
-* **Barcode Scanning:** Incorporating camera-based barcode scanning interfaces directly into the Order Wizard for warehouse fulfillment.
-* **Audit History Logs:** Creating a ledger tracking the exact user and timestamp for every stock adjustment or quantity correction.
-* **Advanced Financial Analytics:** Introducing automated export routines (CSV/PDF) for monthly business, tax, and sales performance audits.
+* **Role-Based Access Control (RBAC):** Define different roles for warehouse staff (updating stock) and managers (accessing analytics and customer details).
+* **Database Pagination:** Implement server-side paging (`LIMIT` and `OFFSET`) to support large product catalogs.
+* **Real-time Updates:** Integrate WebSockets to push instant dashboard alerts and stock warnings.
+* **Barcode Scanning:** Support device-camera scanning inside the Order Wizard.
+* **Audit Log History:** Maintain a history log of stock edits and order corrections.
 
 ---
 
@@ -408,8 +435,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Author
 
-**Aryan Sharma**
-*Computer Science Engineer*
-- **GitHub:** [@techynAR](https://github.com/techynAR)
-- **LinkedIn:** [Aryan Sharma](https://linkedin.com/in/techynar) *(Placeholder)*
+**Aryan Sharma**  
+*Computer Science Engineer*  
+- **GitHub:** [@techynAR](https://github.com/techynAR)  
+- **LinkedIn:** [Aryan Sharma](https://linkedin.com/in/techynar) *(Placeholder)*  
 - **Portfolio:** [techynar.com](https://techynar.com)
