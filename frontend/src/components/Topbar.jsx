@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext'
 export default function Topbar({ onOpenSearch }) {
   const notificationRef = useRef(null)
   const userRef = useRef(null)
+  const brandRef = useRef(null)
 
   const { currency, setCurrency, notifications, availableCurrencies } = useApp()
   const { user, logout } = useAuth()
@@ -13,8 +14,9 @@ export default function Topbar({ onOpenSearch }) {
 
   const [notifOpen, setNotifOpen] = useState(false)
   const [userOpen, setUserOpen] = useState(false)
+  const [brandOpen, setBrandOpen] = useState(false)
 
-  // Close popovers on click outside
+  // Close all popovers on click outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (notifOpen && notificationRef.current && !notificationRef.current.contains(e.target)) {
@@ -23,10 +25,13 @@ export default function Topbar({ onOpenSearch }) {
       if (userOpen && userRef.current && !userRef.current.contains(e.target)) {
         setUserOpen(false)
       }
+      if (brandOpen && brandRef.current && !brandRef.current.contains(e.target)) {
+        setBrandOpen(false)
+      }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [notifOpen, userOpen])
+  }, [notifOpen, userOpen, brandOpen])
 
   const handleLogout = () => {
     setUserOpen(false)
@@ -44,6 +49,53 @@ export default function Topbar({ onOpenSearch }) {
 
   return (
     <header className="topbar">
+
+      {/* Logo — click to show techynAR branding popup */}
+      <div className="topbar-mobile-logo" ref={brandRef}>
+        <button
+          className="topbar-mobile-logo-btn"
+          onClick={() => { setBrandOpen(v => !v); setNotifOpen(false); setUserOpen(false) }}
+          aria-label="About Ordeer"
+        >
+          <img src="/ordeer-logo.png" alt="Ordeer" className="topbar-mobile-logo-img" />
+        </button>
+
+        <div className={`brand-popup${brandOpen ? ' brand-popup--open' : ''}`}>
+          <div className="brand-popup-inner">
+            <a
+              href="https://techynar.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="brand-popup-logo-link"
+              onClick={() => setBrandOpen(false)}
+            >
+              <img src="/techynAR-tools-logo.png" alt="techynAR" className="brand-popup-logo" />
+            </a>
+            <div className="brand-popup-text">
+              <span className="brand-popup-dev">
+                Developed by{' '}
+                <a
+                  href="https://techynar.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="brand-popup-link"
+                >
+                  Aryan Sharma · techynAR
+                </a>
+              </span>
+              <a
+                href="https://tools.techynar.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="brand-popup-tools"
+              >
+                More techynAR tools ↗
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Cmd+K Search Trigger */}
       <button className="search-trigger" onClick={onOpenSearch} aria-label="Open search">
         <svg className="search-trigger-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75">
@@ -58,12 +110,13 @@ export default function Topbar({ onOpenSearch }) {
       </button>
 
       <div className="topbar-actions">
+
         {/* Notifications Bell */}
         <div style={{ position: 'relative' }} ref={notificationRef}>
           <button
             className="btn btn-ghost btn-icon"
             aria-label="Notifications"
-            onClick={() => { setNotifOpen(!notifOpen); setUserOpen(false) }}
+            onClick={() => { setNotifOpen(!notifOpen); setUserOpen(false); setBrandOpen(false) }}
             style={{ position: 'relative' }}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
@@ -82,7 +135,7 @@ export default function Topbar({ onOpenSearch }) {
           {notifOpen && (
             <div className="popover">
               <div className="popover-header">
-                Alerts & Notifications
+                Alerts &amp; Notifications
                 {notifications.length > 0 && (
                   <span className="badge badge-danger" style={{ marginLeft: 8 }}>{notifications.length}</span>
                 )}
@@ -111,7 +164,7 @@ export default function Topbar({ onOpenSearch }) {
           <button
             className="topbar-user-btn"
             aria-label="User menu"
-            onClick={() => { setUserOpen(!userOpen); setNotifOpen(false) }}
+            onClick={() => { setUserOpen(!userOpen); setNotifOpen(false); setBrandOpen(false) }}
           >
             <div className="topbar-avatar">
               {displayName.charAt(0).toUpperCase()}
@@ -174,6 +227,7 @@ export default function Topbar({ onOpenSearch }) {
             </div>
           )}
         </div>
+
       </div>
     </header>
   )

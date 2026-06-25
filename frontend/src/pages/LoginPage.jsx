@@ -155,6 +155,41 @@ export default function LoginPage() {
             <span>Demo credentials: </span>
             <code>admin</code> / <code>admin</code>
           </div>
+
+          {/* techynAR Branding */}
+          <div className="login-techynar-brand">
+            <a
+              href="https://techynar.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="login-techynar-logo-link"
+            >
+              <img
+                src="/techynAR-tools-logo.png"
+                alt="techynAR"
+                className="login-techynar-logo"
+              />
+            </a>
+            <div className="login-techynar-text">
+              <span>Developed by </span>
+              <a
+                href="https://techynar.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="login-techynar-link"
+              >
+                Aryan Sharma · techynAR
+              </a>
+            </div>
+            <a
+              href="https://tools.techynar.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="login-techynar-tools-link"
+            >
+              More techynAR tools ↗
+            </a>
+          </div>
         </div>
       </div>
     </div>

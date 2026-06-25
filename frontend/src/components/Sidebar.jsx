@@ -81,6 +81,37 @@ export default function Sidebar({ collapsed, onToggle }) {
       </nav>
 
       <div className="sidebar-footer">
+        <div className="sidebar-techynar">
+          <a
+            href="https://techynar.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="sidebar-techynar-logo-link"
+            title="techynAR"
+          >
+            <img
+              src="/techynAR-tools-logo.png"
+              alt="techynAR"
+              className="sidebar-techynar-logo"
+            />
+          </a>
+          <div className="sidebar-techynar-info">
+            <span className="sidebar-techynar-dev">
+              Developed by{' '}
+              <a href="https://techynar.com" target="_blank" rel="noopener noreferrer" className="sidebar-techynar-link">
+                Aryan Sharma · techynAR
+              </a>
+            </span>
+            <a
+              href="https://tools.techynar.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="sidebar-techynar-tools"
+            >
+              More techynAR tools ↗
+            </a>
+          </div>
+        </div>
         <div className="sidebar-version">v0.2.0</div>
       </div>
     </aside>
