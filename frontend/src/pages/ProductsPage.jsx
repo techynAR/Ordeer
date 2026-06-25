@@ -387,7 +387,7 @@ export default function ProductsPage() {
         footer={
           detailProduct && !detailEditing && (
             <div style={{ display: 'flex', width: '100%', gap: 8, justifyContent: 'space-between' }}>
-              <button className="btn btn-danger" onClick={() => setDeleteTarget(detailProduct)}>Delete</button>
+              <button className="btn btn-danger" onClick={() => { setDeleteTarget(detailProduct); setDetailOpen(false); }}>Delete</button>
               <button className="btn btn-secondary" onClick={() => {
                 setDetailEditing(true)
                 setEditForm({ name: detailProduct.name, sku: detailProduct.sku, price: String(detailProduct.price), stock_quantity: String(detailProduct.stock_quantity) })

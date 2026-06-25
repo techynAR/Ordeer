@@ -327,7 +327,7 @@ export default function OrdersPage() {
         footer={
           detailOrder && (
             <div style={{ display: 'flex', width: '100%', gap: 8, justifyContent: 'space-between' }}>
-              <button className="btn btn-danger" onClick={() => setDeleteTarget(detailOrder)}>
+              <button className="btn btn-danger" onClick={() => { setDeleteTarget(detailOrder); setDetailOpen(false); }}>
                 Delete Order
               </button>
             </div>

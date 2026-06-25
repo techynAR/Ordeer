@@ -128,22 +128,21 @@ export default function CustomersPage() {
 
   async function handleEdit(e) {
     e.preventDefault()
-    if (!editForm.full_name.trim() && !editForm.email.trim() && !editForm.phone.trim()) {
-      setEditError('At least one field must be filled.')
-      return
-    }
+    if (!editForm.full_name.trim()) { setEditError('Full name is required.'); return }
+    if (!editForm.email.trim()) { setEditError('Email is required.'); return }
+    if (!editForm.phone.trim()) { setEditError('Phone is required.'); return }
     setEditLoading(true)
     setEditError(null)
     try {
-      const patch = {}
-      if (editForm.full_name.trim()) patch.full_name = editForm.full_name.trim()
-      if (editForm.email.trim()) patch.email = editForm.email.trim()
-      if (editForm.phone.trim()) patch.phone = editForm.phone.trim()
-      const updated = await customersApi.updateCustomer(detailCustomer.id, patch)
+      const updated = await customersApi.updateCustomer(detailCustomer.id, {
+        full_name: editForm.full_name.trim(),
+        email: editForm.email.trim(),
+        phone: editForm.phone.trim(),
+      })
       setCustomers((prev) => prev.map((c) => c.id === updated.id ? { ...c, ...updated } : c))
       setDetailCustomer((d) => ({ ...d, ...updated }))
       setDetailEditing(false)
-      showToast(`Customer updated`, 'success')
+      showToast(`Customer "${updated.full_name}" updated`, 'success')
     } catch (err) {
       setEditError(err.response?.data?.detail ?? 'Failed to update customer.')
     } finally {
@@ -203,9 +202,25 @@ export default function CustomersPage() {
       render: (r) => <span className="td-secondary">{formatDate(r.created_at)}</span>,
     },
     {
-      key: '_actions', label: '', width: 52, align: 'right',
+      key: '_actions', label: '', width: 72, align: 'right',
       render: (r) => (
         <div className="td-actions">
+          <button
+            className="btn btn-ghost btn-icon btn-sm"
+            title="Edit customer"
+            onClick={(e) => {
+              e.stopPropagation()
+              setDetailCustomer(r)
+              setDetailOpen(true)
+              setDetailEditing(true)
+              setEditForm({ full_name: r.full_name, email: r.email, phone: r.phone })
+              setEditError(null)
+            }}
+          >
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" width="13" height="13">
+              <path d="M11 2l3 3L5 14H2v-3L11 2z" />
+            </svg>
+          </button>
           <button
             className="btn btn-ghost btn-icon btn-sm"
             style={{ color: 'var(--color-danger)' }}
@@ -299,7 +314,7 @@ export default function CustomersPage() {
         footer={
           detailCustomer && !detailEditing && (
             <div style={{ display: 'flex', width: '100%', gap: 8, justifyContent: 'space-between' }}>
-              <button className="btn btn-danger" onClick={() => setDeleteTarget(detailCustomer)}>Delete</button>
+              <button className="btn btn-danger" onClick={() => { setDeleteTarget(detailCustomer); setDetailOpen(false); }}>Delete</button>
               <button className="btn btn-secondary" onClick={() => {
                 setDetailEditing(true)
                 setEditForm({ full_name: detailCustomer.full_name, email: detailCustomer.email, phone: detailCustomer.phone })
