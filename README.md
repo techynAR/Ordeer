@@ -6,9 +6,11 @@ Ordeer is a production-grade, high-density **Inventory & Order Management Platfo
 
 <div align="center">
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](#)
-[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688.svg?logo=fastapi&logoColor=white)](#)
+[![Build Status](https://img.shields.io/badge/Build-passing-brightgreen.svg)](#)
 [![React](https://img.shields.io/badge/Frontend-React-61DAFB.svg?logo=react&logoColor=white)](#)
+[![Vercel](https://img.shields.io/badge/Hosting-Vercel-000000.svg?logo=vercel&logoColor=white)](#)
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688.svg?logo=fastapi&logoColor=white)](#)
+[![Render](https://img.shields.io/badge/Hosting-Render-46E3B7.svg?logo=render&logoColor=white)](#)
 [![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-4169E1.svg?logo=postgresql&logoColor=white)](#)
 [![Docker](https://img.shields.io/badge/Infrastructure-Docker-2496ED.svg?logo=docker&logoColor=white)](#)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -20,21 +22,21 @@ Ordeer is a production-grade, high-density **Inventory & Order Management Platfo
 > [!TIP]
 > **Live Sandbox Access**
 > - **Client URL:** [https://ordeer.techynar.com](https://ordeer.techynar.com)
-> - **API Endpoint:** [https://api.ordeer.techynar.com](https://api.ordeer.techynar.com)
-> - **Interactive API Docs:** [https://api.ordeer.techynar.com/docs](https://api.ordeer.techynar.com/docs)
+> - **API Endpoint:** [https://ordeer.onrender.com](https://ordeer.onrender.com)
+> - **Interactive API Docs:** [https://ordeer.onrender.com/docs](https://ordeer.onrender.com/docs)
 >
-> **Recruiter Fast-Pass Credentials**
+> **Demo Credentials**
 > - **Username:** `admin`
 > - **Password:** `admin`
-> - *You can also bypass manual typing by clicking the **Demo Login** button on the sign-in screen to authenticate instantly via simulated session storage.*
+> - *You can also bypass manual typing by clicking the **Demo Login** button on the sign-in screen to authenticate instantly.*
 
 ---
 
 ## Features at a Glance
 
-* **Live Dashboard Analytics:** Unified monitoring of sales revenue, low-stock warnings, and real-time transaction activity.
+* **Dashboard Analytics:** Unified monitoring of sales revenue, low-stock warnings, and recent order status.
 * **Strict SKU & Stock Control:** Intuitive catalog management with backend database-level rules preventing overselling or duplicate SKUs.
-* **Active Customer Directory:** Seamless customer profile registration, order histories, and automated lifetime-spend metrics.
+* **Customer Directory:** Seamless customer profile registration, order histories, and aggregate total spend statistics.
 * **Guided Order Wizard:** A multi-step transaction process featuring interactive stock-level checks before checkout.
 * **Global Command Palette:** Instant keyboard navigation (`Cmd+K` / `Ctrl+K`) to search products, orders, and customers from any page.
 * **Responsive Design:** Adaptive layouts styled with custom CSS properties, optimized for handheld warehouse scanners and mobile phones.
@@ -61,22 +63,22 @@ Ordeer splits client presentation and transactional server operations into a cle
 
 ```text
                                ┌───────────────────────────────────┐
-                               │         Vite React Client         │
-                               │  (SPA / Slide-Overs / Command)    │
+                               │       React + Vite Frontend       │
+                               │         (Hosted on Vercel)        │
                                └─────────────────┬─────────────────┘
                                                  │
-                                                 │ HTTPS Requests
+                                                 │ HTTPS Requests (/api/*)
                                                  ▼
                                ┌───────────────────────────────────┐
-                               │          FastAPI Server           │
-                               │ (Lifespan Context / Pydantic v2)  │
+                               │          FastAPI Backend          │
+                               │         (Hosted on Render)        │
                                └─────────────────┬─────────────────┘
                                                  │
                                                  │ SQLAlchemy 2.0 (Async Session)
                                                  ▼
                                ┌───────────────────────────────────┐
-                               │        PostgreSQL Database        │
-                               │  (ACID / SELECT FOR UPDATE Locks) │
+                               │         Render PostgreSQL         │
+                               │            (Database)             │
                                └───────────────────────────────────┘
 ```
 
@@ -106,7 +108,7 @@ graph TD
 ## Core Product Modules
 
 ### 1. Dashboard & Operations
-The central dashboard serves as an operations control room. It provides real-time updates on key performance indicators (KPIs)—including Total Revenue, Orders Processed, Customer Counts, and Active SKUs. A dedicated panel alerts warehouse operators of low-stock thresholds, allowing them to initiate restocks. Recent orders are displayed via a live status-badge activity stream.
+The central dashboard serves as an operations control room. It provides key performance indicators (KPIs)—including Total Revenue, Orders Processed, Customer Counts, and Active SKUs. A dedicated panel alerts warehouse operators of low-stock thresholds, allowing them to initiate restocks. Recent orders are displayed with status badges for easy tracking.
 
 ![Dashboard](docs/screenshots/dashboard-overview.png)
 
@@ -163,7 +165,7 @@ Designed for mobile warehouse terminals, the navigation sidebar collapses on sma
 ---
 
 ### 6. Authentication
-The login page handles access control. To make review easier for recruiters, a **Demo Login** option is available, which bypasses password verification and starts a mock administrator session immediately.
+The login page handles access control. A built-in demo account and a **Demo Login** button are provided for quickly exploring the application. Clicking **Demo Login** bypasses password verification and starts an evaluation administrator session immediately.
 
 ![Login](docs/screenshots/login-screen.png)
 
@@ -354,23 +356,30 @@ Creates an order and deducts inventory stock. This operation runs inside a datab
 </details>
 
 <details>
-<summary><b>Environment Variables Reference</b></summary>
+<summary><b>Environment Variables & API Routing</b></summary>
 
-### Backend Configuration (`backend/.env`)
-| Variable Name | Required | Default Value | Description |
-| :--- | :--- | :--- | :--- |
-| `DATABASE_URL` | Yes | `postgresql://ordeer:ordeer@localhost:5432/ordeer` | SQLAlchemy connection string pointing to the PostgreSQL instance. |
+### Development
+- **Frontend:** Proxies all `/api` requests to `http://localhost:8000` via the Vite dev server configuration.
+- **Backend:** Environment variables are loaded from `backend/.env`.
+  - `DATABASE_URL`: SQLAlchemy connection string pointing to the local PostgreSQL instance (default: `postgresql://ordeer:ordeer@localhost:5432/ordeer`).
 
-### Frontend Configuration
-The frontend makes API requests using the absolute path prefix `/api`. In development, Vite proxies this to port `8000`. For production, configure the hosting server's reverse proxy or rewrite rules to forward `/api` calls to the backend domain.
+### Production
+- **Frontend:** Proxies `/api` calls through Vercel rewrites to Render backend.
+- **Backend:** Secrets and environment configurations (such as `DATABASE_URL`) are managed directly inside the Render Web Service Environment Variables.
 </details>
 
 <details>
 <summary><b>Interactive API Documentation</b></summary>
 
-FastAPI generates interactive API documentation from Pydantic schemas. With the backend server running, you can access:
-- **Interactive Swagger UI:** [http://localhost:8000/docs](http://localhost:8000/docs)
-- **Alternative ReDoc UI:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
+FastAPI generates interactive API documentation from Pydantic schemas. You can access the API documentation at the following locations:
+
+#### Production Documentation
+- **Swagger UI:** [https://ordeer.onrender.com/docs](https://ordeer.onrender.com/docs)
+- **ReDoc UI:** [https://ordeer.onrender.com/redoc](https://ordeer.onrender.com/redoc)
+
+#### Development Documentation (Local Backend)
+- **Swagger UI:** [http://localhost:8000/docs](http://localhost:8000/docs)
+- **ReDoc UI:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
 </details>
 
 <details>
@@ -392,27 +401,37 @@ The script runs the following checks:
 </details>
 
 <details>
-<summary><b>Production Deployment Guide</b></summary>
+<summary><b>Production Deployment & Proxy Configuration</b></summary>
 
-### Backend Deployment (Render)
-1. Register a web service on Render connected to the repository.
-2. Select environment type: **Python**.
-3. Set the **Build Command**:
-   ```bash
-   pip install -r backend/requirements.txt
-   ```
-4. Set the **Start Command**:
-   ```bash
-   cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
-   ```
-5. Add a `DATABASE_URL` environment variable pointing to your production database.
+The project uses separate hosting providers to serve the decoupled frontend and backend services:
 
-### Frontend Deployment (Vercel)
-1. Add a project on Vercel connected to the repository.
-2. Set the **Root Directory** to `frontend`.
-3. Select **Vite** as the framework preset.
-4. Set the **Build Command** to `npm run build` and **Output Directory** to `dist`.
-5. Configure Vercel's routes (`vercel.json`) to forward all `/api/(.*)` requests to the backend API domain.
+### Frontend (Hosted on Vercel)
+- **Framework Preset:** Vite
+- **Root Directory:** `frontend`
+- **Build Command:** `npm run build`
+- **Output Directory:** `dist`
+- **Transparent Proxying:** Production uses Vercel rewrites defined in `vercel.json` to transparently proxy all `/api/*` requests to the Render backend service. This avoids browser Cross-Origin Resource Sharing (CORS) issues while keeping frontend API code clean.
+
+**Vercel Configuration (`frontend/vercel.json`):**
+```json
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://ordeer.onrender.com/:path*"
+    }
+  ]
+}
+```
+
+### Backend (Hosted on Render Web Service)
+- **Environment/Runtime:** Python
+- **Build Command:** `pip install -r backend/requirements.txt`
+- **Start Command:** `cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+- **Environment Variables:** Set `DATABASE_URL` to point to the production database.
+
+### Database (Hosted on Render PostgreSQL)
+- **Type:** PostgreSQL database instance provisioned on Render.
 </details>
 
 ---
@@ -438,5 +457,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Aryan Sharma**  
 *Computer Science Engineer*  
 - **GitHub:** [@techynAR](https://github.com/techynAR)  
-- **LinkedIn:** [Aryan Sharma](https://linkedin.com/in/techynar) *(Placeholder)*  
+- **LinkedIn:** [Aryan Sharma](https://linkedin.com/in/techynar)  
 - **Portfolio:** [techynar.com](https://techynar.com)
