@@ -4,6 +4,7 @@
 
 # Python build and cache
 __pycache__/
+pycache/
 *.py[cod]
 *$py.class
 .pytest_cache/
@@ -17,11 +18,24 @@ venv/
 ENV/
 env/
 
-# Environment files
+# Environment and Credentials
 .env
-.env.local
 .env.*
 
 # OS Files
 .DS_Store
 Thumbs.db
+
+# IDE and temporary files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Frontend/Node files (in case)
+node_modules/
+dist/
+
+# Documentation/Assets
+README.md
+docs/

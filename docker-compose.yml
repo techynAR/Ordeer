@@ -2,19 +2,43 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: ordeer
-      POSTGRES_USER: ordeer
-      POSTGRES_PASSWORD: ordeer
+      POSTGRES_DB: ${POSTGRES_DB:-ordeer}
+      POSTGRES_USER: ${POSTGRES_USER:-ordeer}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ordeer}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ordeer -d ordeer"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-ordeer} -d $${POSTGRES_DB:-ordeer}"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ordeer}:${POSTGRES_PASSWORD:-ordeer}@postgres:5432/${POSTGRES_DB:-ordeer}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
 
 volumes:
   postgres_data:
