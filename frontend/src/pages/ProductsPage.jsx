@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useOutletContext } from 'react-router-dom'
+import { useNavigate, useOutletContext } from 'react-router-dom'
 import * as productsApi from '../api/products'
+import * as ordersApi from '../api/orders'
 import ConfirmDialog from '../components/ConfirmDialog'
 import EmptyState from '../components/EmptyState'
 import Modal from '../components/Modal'
@@ -30,6 +31,10 @@ export default function ProductsPage() {
   const { formatPrice } = useApp()
   const { showToast } = useToast()
   const outletContext = useOutletContext()
+  const navigate = useNavigate()
+
+  const [selectedOrderDetails, setSelectedOrderDetails] = useState(null)
+  const [orderDetailsLoading, setOrderDetailsLoading] = useState(false)
 
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -48,6 +53,7 @@ export default function ProductsPage() {
 
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [selectedIds, setSelectedIds] = useState([])
 
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailProduct, setDetailProduct] = useState(null)
@@ -94,14 +100,18 @@ export default function ProductsPage() {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
+  useEffect(() => {
+    setSelectedIds([])
+  }, [currentPage, search, stockFilter])
+
   const filtered = products.filter((p) => {
     const q = search.toLowerCase()
     const matchSearch = !q || p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)
     const matchStock =
       stockFilter === 'all' ? true :
-      stockFilter === 'out' ? p.stock_quantity === 0 :
-      stockFilter === 'low' ? p.stock_quantity > 0 && p.stock_quantity <= LOW_STOCK_THRESHOLD :
-      stockFilter === 'ok' ? p.stock_quantity > LOW_STOCK_THRESHOLD : true
+        stockFilter === 'out' ? p.stock_quantity === 0 :
+          stockFilter === 'low' ? p.stock_quantity > 0 && p.stock_quantity <= LOW_STOCK_THRESHOLD :
+            stockFilter === 'ok' ? p.stock_quantity > LOW_STOCK_THRESHOLD : true
     return matchSearch && matchStock
   })
 
@@ -178,11 +188,41 @@ export default function ProductsPage() {
   async function handleDelete() {
     setDeleteLoading(true)
     try {
-      // Optimistic removal
-      setProducts((prev) => prev.filter((p) => p.id !== deleteTarget.id))
-      if (detailProduct?.id === deleteTarget.id) { setDetailOpen(false); setDetailProduct(null) }
-      await productsApi.deleteProduct(deleteTarget.id)
-      showToast(`Product "${deleteTarget.name}" deleted`, 'info')
+      if (deleteTarget?.isBulk) {
+        const ids = deleteTarget.ids
+        const results = await Promise.allSettled(
+          ids.map(id => productsApi.deleteProduct(id))
+        )
+        let successCount = 0
+        let failureCount = 0
+        let firstError = null
+
+        results.forEach((res) => {
+          if (res.status === 'fulfilled') {
+            successCount++
+          } else {
+            failureCount++
+            if (!firstError) {
+              firstError = res.reason?.response?.data?.detail ?? 'Failed to delete some items.'
+            }
+          }
+        })
+
+        if (successCount > 0) {
+          showToast(`Successfully deleted ${successCount} product${successCount !== 1 ? 's' : ''}`, 'success')
+        }
+        if (failureCount > 0) {
+          showToast(`Failed to delete ${failureCount} product${failureCount !== 1 ? 's' : ''}: ${firstError}`, 'danger')
+        }
+        setSelectedIds([])
+        fetchProducts()
+      } else {
+        // Optimistic removal
+        setProducts((prev) => prev.filter((p) => p.id !== deleteTarget.id))
+        if (detailProduct?.id === deleteTarget.id) { setDetailOpen(false); setDetailProduct(null) }
+        await productsApi.deleteProduct(deleteTarget.id)
+        showToast(`Product "${deleteTarget.name}" deleted`, 'info')
+      }
       setDeleteTarget(null)
     } catch (err) {
       showToast(err.response?.data?.detail ?? 'Failed to delete product', 'danger')
@@ -193,6 +233,26 @@ export default function ProductsPage() {
     }
   }
 
+  const handleOrderClick = async (orderId) => {
+    setDetailOpen(false)
+    setOrderDetailsLoading(true)
+    try {
+      const details = await ordersApi.getOrder(orderId)
+      setSelectedOrderDetails(details)
+    } catch {
+      showToast('Failed to load order details.', 'danger')
+      setDetailOpen(true)
+    } finally {
+      setOrderDetailsLoading(false)
+    }
+  }
+
+  const handleModalBack = () => {
+    setSelectedOrderDetails(null)
+    setOrderDetailsLoading(false)
+    setDetailOpen(true)
+  }
+
   const openDetail = async (product) => {
     setDetailProduct(product)
     setDetailOpen(true)
@@ -201,7 +261,7 @@ export default function ProductsPage() {
     try {
       const details = await productsApi.getProduct(product.id)
       setDetailProduct(details)
-    } catch {} finally { setDetailLoading(false) }
+    } catch { } finally { setDetailLoading(false) }
   }
 
   const handleSort = (key) => {
@@ -357,6 +417,8 @@ export default function ProductsPage() {
         sortKey={sortKey}
         sortDirection={sortDirection}
         onSort={handleSort}
+        selectedIds={selectedIds}
+        onSelectionChange={setSelectedIds}
         emptyState={
           <EmptyState
             icon={
@@ -508,7 +570,11 @@ export default function ProductsPage() {
                     </thead>
                     <tbody>
                       {detailProduct.order_items.slice(0, 10).map((item) => (
-                        <tr key={item.id}>
+                        <tr
+                          key={item.id}
+                          onClick={() => handleOrderClick(item.order_id)}
+                          style={{ cursor: 'pointer' }}
+                        >
                           <td className="detail-value-mono">#{item.order_id}</td>
                           <td style={{ textAlign: 'center' }}>{item.quantity}</td>
                           <td style={{ textAlign: 'right' }}>{formatPrice(item.unit_price)}</td>
@@ -557,14 +623,147 @@ export default function ProductsPage() {
         </Modal.Footer>
       </Modal>
 
+      {selectedIds.length > 0 && (
+        <div className="bulk-actions-floating-bar">
+          <span className="bulk-actions-count">
+            {selectedIds.length} product{selectedIds.length !== 1 ? 's' : ''} selected
+          </span>
+          <div className="bulk-actions-btns">
+            <button
+              className="btn btn-sm bulk-btn-cancel"
+              onClick={() => setSelectedIds([])}
+            >
+              Cancel
+            </button>
+            <button
+              className="btn btn-sm btn-danger"
+              onClick={() => setDeleteTarget({ isBulk: true, ids: selectedIds })}
+            >
+              Delete Selected
+            </button>
+          </div>
+        </div>
+      )}
+
       <ConfirmDialog
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
         loading={deleteLoading}
-        title="Delete Product"
-        message={<>Delete <strong>{deleteTarget?.name}</strong> (SKU: {deleteTarget?.sku})? This cannot be undone.</>}
+        title={deleteTarget?.isBulk ? 'Delete Products' : 'Delete Product'}
+        message={
+          deleteTarget?.isBulk ? (
+            <>
+              Delete <strong>{deleteTarget.ids.length}</strong> selected products? This will fail for any products that have existing order items.
+            </>
+          ) : (
+            <>
+              Delete <strong>{deleteTarget?.name}</strong> (SKU: {deleteTarget?.sku})? This cannot be undone.
+            </>
+          )
+        }
       />
+
+      {/* Order Details Modal (when clicked from history) */}
+      <Modal
+        isOpen={!!selectedOrderDetails}
+        onClose={handleModalBack}
+        title={selectedOrderDetails ? `Order #${selectedOrderDetails.id} Details` : ''}
+      >
+        <Modal.Body>
+          {selectedOrderDetails && (
+            <>
+              <div className="detail-stats-row" style={{ marginBottom: 'var(--space-4)' }}>
+                <div className="detail-stat">
+                  <div className="detail-stat-label">Status</div>
+                  <div style={{ marginTop: 4 }}><span className={`status-badge status-${selectedOrderDetails.status}`}>{selectedOrderDetails.status}</span></div>
+                </div>
+                <div className="detail-stat">
+                  <div className="detail-stat-label">Total</div>
+                  <div className="detail-stat-value" style={{ color: 'var(--color-accent)' }}>{formatPrice(selectedOrderDetails.total_amount)}</div>
+                </div>
+                <div className="detail-stat">
+                  <div className="detail-stat-label">Items</div>
+                  <div className="detail-stat-value">{selectedOrderDetails.items?.length ?? '—'}</div>
+                </div>
+              </div>
+
+              <div className="detail-section">
+                <div className="detail-section-title">Customer</div>
+                {selectedOrderDetails.customer ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <span className="detail-value">{selectedOrderDetails.customer.full_name}</span>
+                    <span className="detail-label">{selectedOrderDetails.customer.email}</span>
+                    <span className="detail-label">{selectedOrderDetails.customer.phone}</span>
+                  </div>
+                ) : (
+                  <span className="detail-label">Customer #{selectedOrderDetails.customer_id}</span>
+                )}
+              </div>
+
+              <div className="detail-section">
+                <div className="detail-section-title">Timeline</div>
+                <div className="detail-grid">
+                  <div className="detail-item">
+                    <span className="detail-label">Placed</span>
+                    <span className="detail-value">{new Date(selectedOrderDetails.created_at).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="detail-section">
+                <div className="detail-section-title">Line Items</div>
+                <table className="items-table">
+                  <thead>
+                    <tr>
+                      <th>Product</th>
+                      <th style={{ textAlign: 'center', width: 40 }}>Qty</th>
+                      <th style={{ textAlign: 'right', width: 80 }}>Price</th>
+                      <th style={{ textAlign: 'right', width: 80 }}>Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(selectedOrderDetails.items ?? []).map((item) => (
+                      <tr key={item.id}>
+                        <td>
+                          <div style={{ fontWeight: 500 }}>{item.product?.name ?? `Product #${item.product_id}`}</div>
+                          {item.product?.sku && <div className="detail-value-mono">{item.product.sku}</div>}
+                        </td>
+                        <td style={{ textAlign: 'center' }}>{item.quantity}</td>
+                        <td style={{ textAlign: 'right' }}>{formatPrice(item.unit_price)}</td>
+                        <td style={{ textAlign: 'right' }}>{formatPrice(item.subtotal)}</td>
+                      </tr>
+                    ))}
+                    <tr className="total-row">
+                      <td colSpan={3}>Order Total</td>
+                      <td style={{ textAlign: 'right', color: 'var(--color-accent)' }}>{formatPrice(selectedOrderDetails.total_amount)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <button className="btn btn-secondary" onClick={handleModalBack}>Back</button>
+          {selectedOrderDetails && (
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                const orderId = selectedOrderDetails.id
+                setSelectedOrderDetails(null)
+                setDetailOpen(false)
+                if (outletContext?.setPendingNavigation) {
+                  outletContext.setPendingNavigation({ entityId: orderId, entityType: 'order' })
+                }
+                navigate('/orders')
+              }}
+            >
+              Go to Order
+            </button>
+          )}
+        </Modal.Footer>
+      </Modal>
     </>
   )
 }

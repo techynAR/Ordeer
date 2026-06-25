@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useOutletContext } from 'react-router-dom'
+import { useNavigate, useOutletContext } from 'react-router-dom'
 import * as customersApi from '../api/customers'
+import * as ordersApi from '../api/orders'
 import ConfirmDialog from '../components/ConfirmDialog'
 import EmptyState from '../components/EmptyState'
 import Modal from '../components/Modal'
@@ -22,6 +23,10 @@ export default function CustomersPage() {
   const { formatPrice } = useApp()
   const { showToast } = useToast()
   const outletContext = useOutletContext()
+  const navigate = useNavigate()
+
+  const [selectedOrderDetails, setSelectedOrderDetails] = useState(null)
+  const [orderDetailsLoading, setOrderDetailsLoading] = useState(false)
 
   const [customers, setCustomers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -39,6 +44,7 @@ export default function CustomersPage() {
 
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [selectedIds, setSelectedIds] = useState([])
 
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailCustomer, setDetailCustomer] = useState(null)
@@ -84,6 +90,10 @@ export default function CustomersPage() {
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [])
+
+  useEffect(() => {
+    setSelectedIds([])
+  }, [currentPage, search])
 
   const filtered = customers.filter((c) => {
     const q = search.toLowerCase()
@@ -153,10 +163,40 @@ export default function CustomersPage() {
   async function handleDelete() {
     setDeleteLoading(true)
     try {
-      setCustomers((prev) => prev.filter((c) => c.id !== deleteTarget.id))
-      if (detailCustomer?.id === deleteTarget.id) { setDetailOpen(false); setDetailCustomer(null) }
-      await customersApi.deleteCustomer(deleteTarget.id)
-      showToast(`Customer "${deleteTarget.full_name}" removed`, 'info')
+      if (deleteTarget?.isBulk) {
+        const ids = deleteTarget.ids
+        const results = await Promise.allSettled(
+          ids.map(id => customersApi.deleteCustomer(id))
+        )
+        let successCount = 0
+        let failureCount = 0
+        let firstError = null
+
+        results.forEach((res) => {
+          if (res.status === 'fulfilled') {
+            successCount++
+          } else {
+            failureCount++
+            if (!firstError) {
+              firstError = res.reason?.response?.data?.detail ?? 'Failed to delete some items.'
+            }
+          }
+        })
+
+        if (successCount > 0) {
+          showToast(`Successfully deleted ${successCount} customer${successCount !== 1 ? 's' : ''}`, 'success')
+        }
+        if (failureCount > 0) {
+          showToast(`Failed to delete ${failureCount} customer${failureCount !== 1 ? 's' : ''}: ${firstError}`, 'danger')
+        }
+        setSelectedIds([])
+        fetchCustomers()
+      } else {
+        setCustomers((prev) => prev.filter((c) => c.id !== deleteTarget.id))
+        if (detailCustomer?.id === deleteTarget.id) { setDetailOpen(false); setDetailCustomer(null) }
+        await customersApi.deleteCustomer(deleteTarget.id)
+        showToast(`Customer "${deleteTarget.full_name}" removed`, 'info')
+      }
       setDeleteTarget(null)
     } catch (err) {
       showToast(err.response?.data?.detail ?? 'Failed to delete customer', 'danger')
@@ -167,6 +207,26 @@ export default function CustomersPage() {
     }
   }
 
+  const handleOrderClick = async (orderId) => {
+    setDetailOpen(false)
+    setOrderDetailsLoading(true)
+    try {
+      const details = await ordersApi.getOrder(orderId)
+      setSelectedOrderDetails(details)
+    } catch {
+      showToast('Failed to load order details.', 'danger')
+      setDetailOpen(true)
+    } finally {
+      setOrderDetailsLoading(false)
+    }
+  }
+
+  const handleModalBack = () => {
+    setSelectedOrderDetails(null)
+    setOrderDetailsLoading(false)
+    setDetailOpen(true)
+  }
+
   const openDetail = async (customer) => {
     setDetailCustomer(customer)
     setDetailOpen(true)
@@ -175,7 +235,7 @@ export default function CustomersPage() {
     try {
       const details = await customersApi.getCustomer(customer.id)
       setDetailCustomer(details)
-    } catch {} finally { setDetailLoading(false) }
+    } catch { } finally { setDetailLoading(false) }
   }
 
   const handleSort = (key) => {
@@ -283,6 +343,8 @@ export default function CustomersPage() {
         sortKey={sortKey}
         sortDirection={sortDirection}
         onSort={handleSort}
+        selectedIds={selectedIds}
+        onSelectionChange={setSelectedIds}
         emptyState={
           <EmptyState
             icon={
@@ -409,7 +471,11 @@ export default function CustomersPage() {
                     </thead>
                     <tbody>
                       {detailCustomer.orders.slice(0, 10).map((order) => (
-                        <tr key={order.id}>
+                        <tr
+                          key={order.id}
+                          onClick={() => handleOrderClick(order.id)}
+                          style={{ cursor: 'pointer' }}
+                        >
                           <td className="detail-value-mono">#{order.id}</td>
                           <td><span className={`status-badge status-${order.status}`}>{order.status}</span></td>
                           <td className="td-secondary">{formatDate(order.created_at)}</td>
@@ -452,18 +518,147 @@ export default function CustomersPage() {
         </Modal.Footer>
       </Modal>
 
+      {selectedIds.length > 0 && (
+        <div className="bulk-actions-floating-bar">
+          <span className="bulk-actions-count">
+            {selectedIds.length} customer{selectedIds.length !== 1 ? 's' : ''} selected
+          </span>
+          <div className="bulk-actions-btns">
+            <button
+              className="btn btn-sm bulk-btn-cancel"
+              onClick={() => setSelectedIds([])}
+            >
+              Cancel
+            </button>
+            <button
+              className="btn btn-sm btn-danger"
+              onClick={() => setDeleteTarget({ isBulk: true, ids: selectedIds })}
+            >
+              Delete Selected
+            </button>
+          </div>
+        </div>
+      )}
+
       <ConfirmDialog
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
         loading={deleteLoading}
-        title="Delete Customer"
+        title={deleteTarget?.isBulk ? 'Delete Customers' : 'Delete Customer'}
         message={
-          <>
-            Delete <strong>{deleteTarget?.full_name}</strong>? This will fail if they have existing orders.
-          </>
+          deleteTarget?.isBulk ? (
+            <>
+              Delete <strong>{deleteTarget.ids.length}</strong> selected customers? This will fail for any customers with existing orders.
+            </>
+          ) : (
+            <>
+              Delete <strong>{deleteTarget?.full_name}</strong>? This will fail if they have existing orders.
+            </>
+          )
         }
       />
+
+      {/* Order Details Modal (when clicked from history) */}
+      <Modal
+        isOpen={!!selectedOrderDetails}
+        onClose={handleModalBack}
+        title={selectedOrderDetails ? `Order #${selectedOrderDetails.id} Details` : ''}
+      >
+        <Modal.Body>
+          {selectedOrderDetails && (
+            <>
+              <div className="detail-stats-row" style={{ marginBottom: 'var(--space-4)' }}>
+                <div className="detail-stat">
+                  <div className="detail-stat-label">Status</div>
+                  <div style={{ marginTop: 4 }}><span className={`status-badge status-${selectedOrderDetails.status}`}>{selectedOrderDetails.status}</span></div>
+                </div>
+                <div className="detail-stat">
+                  <div className="detail-stat-label">Total</div>
+                  <div className="detail-stat-value" style={{ color: 'var(--color-accent)' }}>{formatPrice(selectedOrderDetails.total_amount)}</div>
+                </div>
+                <div className="detail-stat">
+                  <div className="detail-stat-label">Items</div>
+                  <div className="detail-stat-value">{selectedOrderDetails.items?.length ?? '—'}</div>
+                </div>
+              </div>
+
+              <div className="detail-section">
+                <div className="detail-section-title">Customer</div>
+                {selectedOrderDetails.customer ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <span className="detail-value">{selectedOrderDetails.customer.full_name}</span>
+                    <span className="detail-label">{selectedOrderDetails.customer.email}</span>
+                    <span className="detail-label">{selectedOrderDetails.customer.phone}</span>
+                  </div>
+                ) : (
+                  <span className="detail-label">Customer #{selectedOrderDetails.customer_id}</span>
+                )}
+              </div>
+
+              <div className="detail-section">
+                <div className="detail-section-title">Timeline</div>
+                <div className="detail-grid">
+                  <div className="detail-item">
+                    <span className="detail-label">Placed</span>
+                    <span className="detail-value">{new Date(selectedOrderDetails.created_at).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="detail-section">
+                <div className="detail-section-title">Line Items</div>
+                <table className="items-table">
+                  <thead>
+                    <tr>
+                      <th>Product</th>
+                      <th style={{ textAlign: 'center', width: 40 }}>Qty</th>
+                      <th style={{ textAlign: 'right', width: 80 }}>Price</th>
+                      <th style={{ textAlign: 'right', width: 80 }}>Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(selectedOrderDetails.items ?? []).map((item) => (
+                      <tr key={item.id}>
+                        <td>
+                          <div style={{ fontWeight: 500 }}>{item.product?.name ?? `Product #${item.product_id}`}</div>
+                          {item.product?.sku && <div className="detail-value-mono">{item.product.sku}</div>}
+                        </td>
+                        <td style={{ textAlign: 'center' }}>{item.quantity}</td>
+                        <td style={{ textAlign: 'right' }}>{formatPrice(item.unit_price)}</td>
+                        <td style={{ textAlign: 'right' }}>{formatPrice(item.subtotal)}</td>
+                      </tr>
+                    ))}
+                    <tr className="total-row">
+                      <td colSpan={3}>Order Total</td>
+                      <td style={{ textAlign: 'right', color: 'var(--color-accent)' }}>{formatPrice(selectedOrderDetails.total_amount)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <button className="btn btn-secondary" onClick={handleModalBack}>Back</button>
+          {selectedOrderDetails && (
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                const orderId = selectedOrderDetails.id
+                setSelectedOrderDetails(null)
+                setDetailOpen(false)
+                if (outletContext?.setPendingNavigation) {
+                  outletContext.setPendingNavigation({ entityId: orderId, entityType: 'order' })
+                }
+                navigate('/orders')
+              }}
+            >
+              Go to Order
+            </button>
+          )}
+        </Modal.Footer>
+      </Modal>
     </>
   )
 }

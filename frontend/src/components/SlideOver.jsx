@@ -31,13 +31,13 @@ export default function SlideOver({ isOpen, onClose, title, children, footer }) 
 
   return createPortal(
     <>
-      <div 
-        className="slideover-backdrop" 
-        onClick={onClose} 
-        style={{ 
+      <div
+        className="slideover-backdrop"
+        onClick={onClose}
+        style={{
           opacity: animate ? 1 : 0,
           transition: 'opacity 180ms ease'
-        }} 
+        }}
       />
       <div className={`slideover ${animate ? 'open' : ''}`}>
         <div className="slideover-header">

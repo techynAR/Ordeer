@@ -76,6 +76,7 @@ export default function OrdersPage() {
 
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [selectedIds, setSelectedIds] = useState([])
 
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailOrder, setDetailOrder] = useState(null)
@@ -103,13 +104,49 @@ export default function OrdersPage() {
   useEffect(() => {
     const ctx = outletContext
     if (ctx?.pendingNavigation?.entityType === 'order' && orders.length > 0) {
-      const order = orders.find((o) => o.id === ctx.pendingNavigation.entityId)
-      if (order) {
-        openDetail(order)
-        ctx.clearPendingNavigation?.()
+      const targetId = Number(ctx.pendingNavigation.entityId)
+
+      // Find the order in the local list
+      let order = orders.find((o) => Number(o.id) === targetId)
+
+      // If the order isn't found locally, fetch it from the API and prepend it
+      if (!order) {
+        ordersApi.getOrder(targetId)
+          .then((fetchedOrder) => {
+            if (fetchedOrder) {
+              setOrders((prev) => [fetchedOrder, ...prev])
+            }
+          })
+          .catch((err) => {
+            console.error("Failed to fetch target order:", err)
+          })
+        return
       }
+
+      // Reset filters so the order is visible
+      setSearch('')
+      setStatusFilter('all')
+
+      // Calculate the correct page based on simulated sorting
+      const simulatedFiltered = orders.filter(() => true)
+      const simulatedSorted = [...simulatedFiltered].sort((a, b) => {
+        if (!sortKey) return 0
+        let aVal = a[sortKey], bVal = b[sortKey]
+        if (typeof aVal === 'string') return sortDirection === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal)
+        return sortDirection === 'asc' ? aVal - bVal : bVal - aVal
+      })
+
+      const index = simulatedSorted.findIndex((o) => Number(o.id) === targetId)
+      if (index !== -1) {
+        const targetPage = Math.floor(index / PAGE_SIZE) + 1
+        setCurrentPage(targetPage)
+      }
+
+      // Open the order details slide-over
+      openDetail(order)
+      ctx.clearPendingNavigation?.()
     }
-  }, [outletContext, orders])
+  }, [outletContext, orders, sortKey, sortDirection])
 
   // Global keyboard shortcut: N = new order
   useEffect(() => {
@@ -124,6 +161,10 @@ export default function OrdersPage() {
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [])
+
+  useEffect(() => {
+    setSelectedIds([])
+  }, [currentPage, search, statusFilter])
 
   const filtered = orders.filter((o) => {
     const q = search.toLowerCase()
@@ -157,7 +198,7 @@ export default function OrdersPage() {
     try {
       const details = await ordersApi.getOrder(order.id)
       setDetailOrder(details)
-    } catch {}
+    } catch { }
     finally { setDetailLoading(false) }
   }
 
@@ -173,11 +214,41 @@ export default function OrdersPage() {
   const handleDelete = async () => {
     setDeleteLoading(true)
     try {
-      // Optimistic removal
-      setOrders((prev) => prev.filter((o) => o.id !== deleteTarget.id))
-      if (detailOrder?.id === deleteTarget.id) { setDetailOpen(false); setDetailOrder(null) }
-      await ordersApi.deleteOrder(deleteTarget.id)
-      showToast(`Order #${deleteTarget.id} deleted`, 'info')
+      if (deleteTarget?.isBulk) {
+        const ids = deleteTarget.ids
+        const results = await Promise.allSettled(
+          ids.map(id => ordersApi.deleteOrder(id))
+        )
+        let successCount = 0
+        let failureCount = 0
+        let firstError = null
+
+        results.forEach((res) => {
+          if (res.status === 'fulfilled') {
+            successCount++
+          } else {
+            failureCount++
+            if (!firstError) {
+              firstError = res.reason?.response?.data?.detail ?? 'Failed to delete some items.'
+            }
+          }
+        })
+
+        if (successCount > 0) {
+          showToast(`Successfully deleted ${successCount} order${successCount !== 1 ? 's' : ''}`, 'success')
+        }
+        if (failureCount > 0) {
+          showToast(`Failed to delete ${failureCount} order${failureCount !== 1 ? 's' : ''}: ${firstError}`, 'danger')
+        }
+        setSelectedIds([])
+        fetchAll()
+      } else {
+        // Optimistic removal
+        setOrders((prev) => prev.filter((o) => o.id !== deleteTarget.id))
+        if (detailOrder?.id === deleteTarget.id) { setDetailOpen(false); setDetailOrder(null) }
+        await ordersApi.deleteOrder(deleteTarget.id)
+        showToast(`Order #${deleteTarget.id} deleted`, 'info')
+      }
       setDeleteTarget(null)
     } catch (err) {
       showToast(err.response?.data?.detail ?? 'Failed to delete order', 'danger')
@@ -298,6 +369,8 @@ export default function OrdersPage() {
         sortKey={sortKey}
         sortDirection={sortDirection}
         onSort={handleSort}
+        selectedIds={selectedIds}
+        onSelectionChange={setSelectedIds}
         emptyState={
           <EmptyState
             icon={
@@ -445,11 +518,33 @@ export default function OrdersPage() {
               ordersApi.getOrder(orderId).then((o) => {
                 setDetailOrder(o)
                 setDetailOpen(true)
-              }).catch(() => {})
+              }).catch(() => { })
             }, 200)
           }
         }}
       />
+
+      {selectedIds.length > 0 && (
+        <div className="bulk-actions-floating-bar">
+          <span className="bulk-actions-count">
+            {selectedIds.length} order{selectedIds.length !== 1 ? 's' : ''} selected
+          </span>
+          <div className="bulk-actions-btns">
+            <button
+              className="btn btn-sm bulk-btn-cancel"
+              onClick={() => setSelectedIds([])}
+            >
+              Cancel
+            </button>
+            <button
+              className="btn btn-sm btn-danger"
+              onClick={() => setDeleteTarget({ isBulk: true, ids: selectedIds })}
+            >
+              Delete Selected
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirm */}
       <ConfirmDialog
@@ -457,12 +552,18 @@ export default function OrdersPage() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
         loading={deleteLoading}
-        title="Delete Order"
+        title={deleteTarget?.isBulk ? 'Delete Orders' : 'Delete Order'}
         message={
-          <>
-            Delete order <strong>#{deleteTarget?.id}</strong> ({formatPrice(deleteTarget?.total_amount ?? 0)})?
-            This cannot be undone.
-          </>
+          deleteTarget?.isBulk ? (
+            <>
+              Delete <strong>{deleteTarget.ids.length}</strong> selected orders? This cannot be undone.
+            </>
+          ) : (
+            <>
+              Delete order <strong>#{deleteTarget?.id}</strong> ({formatPrice(deleteTarget?.total_amount ?? 0)})?
+              This cannot be undone.
+            </>
+          )
         }
       />
     </>

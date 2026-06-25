@@ -46,7 +46,7 @@ export default function AppShell() {
         <div className={`main-area ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
           <Topbar onOpenSearch={() => setCmdPaletteOpen(true)} />
           <main className="content">
-            <Outlet context={{ pendingNavigation, clearPendingNavigation: () => setPendingNavigation(null) }} />
+            <Outlet context={{ pendingNavigation, clearPendingNavigation: () => setPendingNavigation(null), setPendingNavigation }} />
           </main>
         </div>
       </div>

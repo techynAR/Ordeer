@@ -30,6 +30,15 @@ class OrderItemResponse(BaseModel):
     subtotal: Decimal
 
 
+class OrderCustomerSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    full_name: str
+    email: str
+    phone: str
+
+
 class OrderResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -39,6 +48,7 @@ class OrderResponse(BaseModel):
     total_amount: Decimal
     created_at: datetime
     updated_at: datetime
+    customer: OrderCustomerSummary
     items: list[OrderItemResponse] = Field(validation_alias="order_items")
 
 
@@ -52,14 +62,6 @@ class OrderItemProductSummary(BaseModel):
 class OrderItemDetailResponse(OrderItemResponse):
     product: OrderItemProductSummary
 
-
-class OrderCustomerSummary(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    full_name: str
-    email: str
-    phone: str
 
 
 class OrderDetailResponse(BaseModel):

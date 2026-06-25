@@ -131,12 +131,15 @@ def get_all_orders(
     limit: int = 100,
 ) -> list[Order]:
     """
-    Return a paginated list of all orders with ``order_items`` eagerly loaded,
+    Return a paginated list of all orders with ``order_items`` and ``customer`` eagerly loaded,
     ordered by descending creation time (newest first).
     """
     stmt = (
         select(Order)
-        .options(selectinload(Order.order_items))
+        .options(
+            selectinload(Order.order_items),
+            selectinload(Order.customer),
+        )
         .order_by(Order.created_at.desc())
         .offset(skip)
         .limit(limit)

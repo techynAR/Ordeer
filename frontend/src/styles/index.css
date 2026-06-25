@@ -1696,8 +1696,8 @@ tbody tr:hover .td-actions {
 /* Stats row in slide-over */
 .detail-stats-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: var(--space-2);
   margin-bottom: var(--space-5);
 }
 
@@ -1709,6 +1709,8 @@ tbody tr:hover .td-actions {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .detail-stat-label {
@@ -1717,9 +1719,11 @@ tbody tr:hover .td-actions {
 }
 
 .detail-stat-value {
-  font-size: var(--text-xl);
+  font-size: 15px;
   font-weight: 600;
   letter-spacing: -0.02em;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 /* Inline items table within slide-over */
@@ -3488,4 +3492,64 @@ tbody tr:hover .td-actions {
 
 .login-techynar-tools-link:hover {
   opacity: 1;
+}
+
+/* Bulk Action Floating Bar */
+.bulk-actions-floating-bar {
+  position: fixed;
+  bottom: 24px;
+  left: calc(var(--sidebar-width) / 2 + 50%);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  background-color: #1f2937; /* Slate 800 */
+  color: #ffffff;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  animation: slideUpBulk 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: left var(--transition-base);
+}
+
+/* Handle collapsed sidebar offset adjustments dynamically */
+.sidebar.collapsed ~ .main-area .bulk-actions-floating-bar {
+  left: calc(var(--sidebar-collapsed-width) / 2 + 50%);
+}
+
+@keyframes slideUpBulk {
+  from {
+    transform: translate(-50%, 24px);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}
+
+.bulk-actions-count {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: #f3f4f6; /* Gray 100 */
+  white-space: nowrap;
+}
+
+.bulk-actions-btns {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.bulk-btn-cancel {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.bulk-btn-cancel:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.2);
 }
